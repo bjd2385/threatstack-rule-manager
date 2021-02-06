@@ -1,0 +1,5 @@
+.threatstack
+.env
+.idea/
+.mypy_cache/
+__pycache__/
