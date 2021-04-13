@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Dict
 
 import requests
 import json
@@ -15,13 +15,15 @@ class State:
     """
     Manage the local file tree/workspace and answer CLI options.
     """
-    def __init__(self, org_id: str, user_id: str, api_key: str):
+    def __init__(self, org_id: str, user_id: str, api_key: str, lazy: bool =False,
+                 base: str ='~/.threatstack') -> None:
         self.__org_id = org_id
         self.__user_id = user_id
         self.__api_key = api_key
+        self.lazy = lazy
+        self.base = base
 
-    @classmethod
-    def lst(cls, *args: Any, **kwargs: Any) -> 'State':
+    def lst(self) -> 'State':
         """
         List the ruleset and rule hierarchy under an organization.
 
@@ -29,17 +31,31 @@ class State:
             A State object.
         """
 
-    @classmethod
-    def create_ruleset(cls) -> 'State':
+    def create_rulesets(self, filename: str) -> 'State':
         """
-        Create a new ruleset in the configured org.
+        Create a new ruleset in the current workspace.
 
         Returns:
             A State object.
         """
 
-    @classmethod
-    def create_rule(cls) -> 'State':
+    def create_rule(self, ruleset_id: str, filename: str) -> 'State':
+        """
+        Create a new rule from a JSON file in the current workspace.
+
+        Returns:
+            A State object.
+        """
+
+    def copy_rule(self, rule_id: str, ruleset_id: str) -> 'State':
+        """
+        Copy an existing rule in the current workspace to a new one (same ruleset or not).
+
+        Returns:
+            A State object.
+        """
+
+    def copy_rule_out(self, rule_id: str, ruleset_id: str, org_id: str) -> 'State':
         """
         Create a new rule from a JSON file.
 
@@ -47,46 +63,57 @@ class State:
             A State object.
         """
 
-    @classmethod
-    def update(cls) -> 'State':
+    def copy_ruleset(self, ruleset_id: str, newname: str) -> 'State':
         """
-        Update a rule in a ruleset with a rule in a JSON file.
+        Create a new rule from a JSON file.
 
         Returns:
             A State object.
         """
 
-    @classmethod
-    def update_suppression(cls) -> 'State':
+    def copy_ruleset_out(self, ruleset_id: str, org_id: str) -> 'State':
         """
-        Update a suppression on a rule.
+        Create a new rule from a JSON file.
 
         Returns:
             A State object.
         """
 
-    @classmethod
-    def copy_rule(cls) -> 'State':
+    def update_rule(self, ruleset_id: str, rule_id: str, filename: str) -> 'State':
         """
-        Copy a rule from one rule set to another, either within this organization, or to a new one.
+        Create a new rule from a JSON file.
 
         Returns:
             A State object.
         """
 
-    @classmethod
-    def copy_ruleset(cls) -> 'State':
+    def update_ruleset(self, ruleset_id: str, filename: str) -> 'State':
         """
-        Copy a ruleset to either a new name in the same organization, or another organization entirely.
+        Create a new rule from a JSON file.
 
         Returns:
             A State object.
         """
 
-    @classmethod
-    def workspace(cls) -> 'State':
+    def refresh(self) -> 'State':
         """
-        Switch or set the org. ID.
+        Create a new rule from a JSON file.
+
+        Returns:
+            A State object.
+        """
+
+    def push(self) -> 'State':
+        """
+        Create a new rule from a JSON file.
+
+        Returns:
+            A State object.
+        """
+
+    def workspace(self) -> 'State':
+        """
+        Create a new rule from a JSON file.
 
         Returns:
             A State object.

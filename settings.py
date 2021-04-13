@@ -16,9 +16,14 @@ log_level = os.getenv('LOGLEVEL')
 if not log_level:
     log_level = 'WARNING'
 
+lazy_eval = os.getenv('LAZY_EVAL')
+if not lazy_eval:
+    lazy_eval = False
+
 
 env = {
     'API_KEY': os.getenv('API_KEY'),
     'API_ID': os.getenv('API_ID'),
+    'LAZY_EVAL': os.getenv('LAZY_EVAL'),
     'LOGLEVEL': log_level.upper()
 }

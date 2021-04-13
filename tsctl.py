@@ -34,7 +34,7 @@ if __name__ == '__main__':
     )
 
     group.add_argument(
-        '-C', '--create-ruleset', dest='create_ruleset', nargs=1, type=str, metavar=('FILE'),
+        '-a', '--create-ruleset', dest='create_ruleset', nargs=1, type=str, metavar=('FILE',),
         help='Create a new ruleset in the configured org.'
     )
 
@@ -45,28 +45,38 @@ if __name__ == '__main__':
     )
 
     group.add_argument(
-        '-u', '--update', dest='update', nargs=3, type=str, metavar=('RULESET', 'RULE', 'FILE'),
+        '-n', '--copy-rule', dest='copy', nargs=2, type=str, metavar=('RULE', 'RULESET'),
+        help='Copy a rule from one ruleset to another (in the same organization).'
+    )
+
+    group.add_argument(
+        '-N', '--copy-rule-out', dest='copy_out', nargs=3, type=str, metavar=('RULE', 'RULESET', 'ORGID'),
+        help='Copy a rule from the current workspace to a ruleset in a different organization.'
+    )
+
+    group.add_argument(
+        '-m', '--copy-ruleset', dest='copy_ruleset', nargs=2, type=str, metavar=('RULESET', 'NEWNAME'),
+        help='Copy an entire ruleset with a new name to the same workspace.'
+    )
+
+    group.add_argument(
+        '-M', '--copy-ruleset-out', dest='copy_ruleset', nargs=2, type=str, metavar=('RULESET', 'ORGID'),
+        help='Copy an entire ruleset in the current workspace to a different organization.'
+    )
+
+    group.add_argument(
+        '-u', '--update-rule', dest='update', nargs=3, type=str, metavar=('RULESET', 'RULE', 'FILE'),
         help='Update a rule in a ruleset with a rule in a JSON file.'
+    )
+
+    group.add_argument(
+        '-U', '--update-ruleset', dest='update_ruleset', nargs=2, type=str, metavar=('RULESET', 'FILE'),
+        help='Update a ruleset from a JSON file.'
     )
 
     group.add_argument(
         '-s', '--update-suppression', dest='suppression', nargs=3, type=str, metavar=('RULESET', 'RULE', 'FILE'),
         help='Update a suppression on a rule.'
-    )
-
-    # TODO: explore potentially removing the necessity to add the source ruleset, all rules have unique IDs.
-    group.add_argument(
-        '-n', '--copy', dest='copy', nargs=2, type=str, metavar=('RULE', 'RULESET'),
-        help='Copy a rule from one ruleset to another (in the same organization).'
-    )
-
-    group.add_argument(
-        '-N', '--copy-out', dest='copy_out', nargs=3, type=str, metavar=('RULE', 'RULESET', )
-    )
-
-    group.add_argument(
-        '-K', '--copy-ruleset', dest='copy_ruleset', nargs=2, type=str, metavar=('RULESET', 'NEWNAME'),
-        help='Copy an entire ruleset with a new name.'
     )
 
     group.add_argument(
@@ -75,7 +85,7 @@ if __name__ == '__main__':
     )
 
     group.add_argument(
-        '-p', '--push', dest='restore', type=str, metavar=('SNAPSHOT',),
+        '-p', '--push', dest='push',
         help='Push local state to the organization.'
     )
 
@@ -87,4 +97,7 @@ if __name__ == '__main__':
     options = vars(parser.parse_args())
     print(options)
 
-    manager = State(**options)
+    manager = State(
+        api_key=env['API_KEY']
+
+    )
