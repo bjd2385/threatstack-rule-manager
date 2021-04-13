@@ -12,7 +12,13 @@ __all__ = [
 ]
 
 
+log_level = os.getenv('LOGLEVEL')
+if not log_level:
+    log_level = 'WARNING'
+
+
 env = {
     'API_KEY': os.getenv('API_KEY'),
-    'API_ID': os.getenv('API_ID')
+    'API_ID': os.getenv('API_ID'),
+    'LOGLEVEL': log_level.upper()
 }
