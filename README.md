@@ -4,7 +4,7 @@
 
 * creating rules and rulesets,
 * copying rules, both intra-organizational and extra, and
-* 
+* applying version control to local state.
 
 In addition to the above, since the tool works out of a local directory (by default, 
 `~/.threatstack`), it allows for version control with `git`.
@@ -14,7 +14,10 @@ In addition to the above, since the tool works out of a local directory (by defa
 ### How do I configure the tool?
 
 After installing `tsctl`, you should see one new directory in your home directory, `~/.threatstack`, that stores local state. You may optionally place a
-file `~/.threatstack.conf` in your home directory to configure the location and name of the local state directory.
+file `~/.threatstack.conf` in your home directory to configure the location and name of the local state directory. Other options for this file include
+
+* `STATE_FILE_NAME`
+* `CONF_DIRECTORY` - 
 
 ### What does the local state directory's structure look like?
 
@@ -41,7 +44,7 @@ The `.threatstack.state.json` state file tracks local organization and cross-org
 ### Environment Variables
 
 * `API_KEY`:
-* `API_ID`: 
+* `USER_ID`: 
 * `LOGLEVEL`: (optional, default: `INFO`)
 * `LAZY_EVAL`: (optional, default: `false`)
 * `CONFIG_DIR`: (optional, default: `~/.threatstack`)

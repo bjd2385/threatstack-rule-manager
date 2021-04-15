@@ -41,19 +41,53 @@ class State:
     """
     Manage local and remote organizational state through OS-level calls and API calls.
     """
-    def __init__(self, org_id: str, user_id: str, api_key: str, state_dir: str ='~/.threatstack', state_file_name: str ='.threatstack.state.json') -> None:
+    def __init__(self, org_id: str, user_id: str, api_key: str, state_dir: str, state_file: str) -> None:
         self.org_id = org_id
         self.user_id = user_id
         self.api_key = api_key
-        self.state_dir = '~/.threatstack'
-        self._state_file_name = '.threatstack.state.json'
-        self.local_state_file = self.state_dir + ('/' + self._state_file_name) if not self.state_dir.endswith('/') else self._state_file_name
+        self.state_dir = state_dir
+        self.state_file = state_file
 
-        credentials = {
-            'user': user_id,
-            'key': api_key,
-            'ext': org_id
+        self.credentials = {
+            'user_id': user_id,
+            'api_key': api_key,
+            'org_id': org_id
         }
+
+    @property
+    def org_id(self) -> str:
+        """
+        Getter on the current workspace/organization's ID.
+
+        Returns:
+            The current workspace we've set.
+        """
+        return self._org_id
+
+    @org_id.setter
+    def org_id(self, value: str) -> None:
+        """
+        Capture the side affect of adjusting the working directory of this class instance through a property setter.
+
+        Args:
+            value: ID to set the current workspace to.
+
+        Returns:
+            Nothing.
+        """
+        self._org_id = value
+        self._create_organization(value)
+
+    @org_id.deleter
+    def org_id(self) -> None:
+        """
+        Capture the side affect of deleting the organization's directory in the local filesystem. This is not a change
+        that has to be pushed in any way.
+
+        Returns:
+            Nothing.
+        """
+        self._delete_organization(self.org_id)
 
     def push(self) -> bool:
         """
@@ -63,6 +97,15 @@ class State:
 
         Returns:
             True if all API calls were successful.
+        """
+
+    def refresh(self) -> 'State':
+        """
+        Effectively `push`'s opposite - instead of pushing local state onto the remote, pull all of the remote
+        state and copy it over the local state (effectively deleting the local state).
+
+        Returns:
+            A State object.
         """
 
     ## Local filesystem/state high level API.
@@ -78,7 +121,6 @@ class State:
         Returns:
             True if the creation and switch was successful, False otherwise.
         """
-
 
     def _delete_organization(self, org_id: str) -> bool:
         """
@@ -165,41 +207,6 @@ class State:
         Returns:
 
         """
-
-    @property
-    def org_id(self) -> str:
-        """
-        Getter on the current workspace/organization's ID.
-
-        Returns:
-            The current workspace we've set.
-        """
-        return self._org_id
-
-    @org_id.setter
-    def org_id(self, value: str) -> None:
-        """
-        Capture the side affect of adjusting the working directory of this class instance through a property setter.
-
-        Args:
-            value: ID to set the current workspace to.
-
-        Returns:
-            Nothing.
-        """
-        self._org_id = value
-        self._create_organization(value)
-
-    @org_id.deleter
-    def org_id(self) -> None:
-        """
-        Capture the side affect of deleting the organization's directory in the local filesystem. This is not a change
-        that has to be pushed in any way.
-
-        Returns:
-            Nothing.
-        """
-        self._delete_organization(self.org_id)
 
     def lst(self) -> 'State':
         """
@@ -332,39 +339,3 @@ class State:
         Returns:
 
         """
-
-
-def refresh(self, org_id: str) -> State:
-    """
-    Effectively `push`'s opposite - instead of pushing local state onto the remote, pull all of the remote
-    state and copy it over the local state (effectively deleting the local state).
-
-    Returns:
-        A State object.
-    """
-
-
-def diff(self, state: State, org_id: str) -> Dict:
-    """
-    Output a nicely formatted diff between local state and the remote/platform state for the current workspace.
-    This function essentially allows you to view the local state file that tracks what is to be pushed, based on
-    the last refresh's returns.
-
-    Args:
-        state:
-        org_id:
-
-    Returns:
-        A dictionary with the following schema ~
-        TODO: complete this schema
-    """
-
-
-def workspace(self, org_id: str) -> State:
-    """
-    Change the current workspace by updating the organization ID on disk.
-
-    Returns:
-        A State object.
-    """
-
