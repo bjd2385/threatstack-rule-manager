@@ -25,5 +25,6 @@ env = {
     'API_KEY': os.getenv('API_KEY'),
     'API_ID': os.getenv('API_ID'),
     'LAZY_EVAL': os.getenv('LAZY_EVAL'),
-    'LOGLEVEL': log_level.upper()
+    'LOGLEVEL': log_level.upper(),
+    'CONFIG_DIR': os.getenv('CONFIG_DIR')
 }

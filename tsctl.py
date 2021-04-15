@@ -85,11 +85,6 @@ if __name__ == '__main__':
     )
 
     group.add_argument(
-        '-s', '--update-suppression', dest='suppression', nargs=3, type=str, metavar=('RULESET', 'RULE', 'FILE'),
-        help='(lazy) Update a suppression on a rule.'
-    )
-
-    group.add_argument(
         '-r', '--refresh', dest='refresh', action='store_true',
         help='Refresh our local state of the organization\'s rules.'
     )
