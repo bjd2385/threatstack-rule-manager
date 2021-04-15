@@ -8,7 +8,6 @@ A powerful Threat Stack rule manager for your terminal.
 from typing import Tuple, Dict
 
 from argparse import ArgumentParser, MetavarTypeHelpFormatter
-from settings import env
 from state_manager import State
 
 import logging
@@ -17,7 +16,7 @@ import os
 import json
 
 
-def initialize_state_directory() -> Tuple[str, str]:
+def initialize_state_directory() -> Tuple[str, str, Dict[str, str]]:
     """
     Initialize the state directory in the user's home directory.
 
@@ -31,6 +30,11 @@ def initialize_state_directory() -> Tuple[str, str]:
     parser = configparser.ConfigParser()
     parser.read(conf)
 
+    # Collect default options, such as laziness.
+    if parser.default_section in parser.sections():
+        ...
+
+    # Set up the local state directory and a default state file, if it doesn't exist.
     if 'STATE' in parser.sections():
         state_section = parser['STATE']
         state_directory = state_section.get('STATE_DIR', fallback='.threatstack')
@@ -50,15 +54,41 @@ def initialize_state_directory() -> Tuple[str, str]:
     else:
         logging.debug(f'Using state directory \'{state_directory_path}\' for local state')
 
-    if not os.path.isfile(state_file_path):
+    if not os.path.isfile(state_file_path) or os.path.getsize(state_file_path) < 17:
+        # Write the base config to local state.
         logging.debug(f'Initializing state directory tree.')
-        with open(state_file_path, 'w') as f:
-            f.write(json.dumps(dict()))
+        with open(state_file_path, 'w+') as f:
+            json.dump({'workspace': ''}, f)
+    else:
+        # TODO: Ensure the existing file at least conforms to the required schema.
+        ...
 
-    return state_directory_path, state_file_path
+    # Collect credentials from the rest of the conf or from env.
+    if 'CREDENTIALS' in parser.sections():
+        credentials = parser['CREDENTIALS']
+        if 'USER_ID' not in credentials or 'API_KEY' not in credentials:
+            logging.error(f'Must set values for \'USER_ID\' and \'API_KEY\' in \'{conf}\' under CREDENTIALS header')
+            exit(1)
+        else:
+            credentials = {
+                'user_id': credentials['USER_ID'],
+                'api_key': credentials['API_KEY']
+            }
+    else:
+        try:
+            assert(all(os.getenv(v) is not None for v in ('USER_ID', 'API_KEY')))
+        except AssertionError:
+            logging.error(f'Must set environment variables for \'USER_ID\' and \'API_KEY\' or define them in \'{conf}\'')
+            exit(1)
+        credentials = {
+            'user_id': os.getenv('USER_ID'),
+            'api_key': os.getenv('API_KEY')
+        }
+
+    return state_directory_path, state_file_path, credentials
 
 
-def workspace(state_file: str, org_id: str) -> None:
+def workspace(state_file: str, org_id: str, credentials: Dict[str, str]) -> State:
     """
     Change the current workspace by updating the organization ID in the state file.
 
@@ -69,10 +99,17 @@ def workspace(state_file: str, org_id: str) -> None:
     Returns:
         A State object.
     """
-    with open(state_file, 'w') as f:
-        ...
+    with open(state_file, 'r+') as f:
+        state = json.load(f)
+        state['workspace'] = org_id
+        f.seek(0)
+        json.dump(state, f)
 
-    return
+    new_state = State(
+        
+    )
+
+    new_state.refresh()
 
 
 def diff(self, file: str) -> Dict:
@@ -91,7 +128,7 @@ def diff(self, file: str) -> Dict:
 
 
 def main() -> None:
-    state_directory, state_file = initialize_state_directory()
+    state_directory, state_file, credentials = initialize_state_directory()
 
     parser = ArgumentParser(description=__doc__,
                             formatter_class=MetavarTypeHelpFormatter,
@@ -180,13 +217,12 @@ def main() -> None:
     options = vars(parser.parse_args())
     print(options)
 
-    workspace = State(
-        user_id=env['USER_ID'],
-        api_key=env['API_KEY'],
-        org_id=env['ORG_ID'],
-        state_dir=state_directory,
-        state_file=state_file
-    )
+    if options['diff']:
+        with open(state_file, 'r') as f:
+           print(json.dumps(json.load(f), indent=2))
+    elif options['switch']:
+        org_id = options['switch']
+        workspace(state_file, org_id, credentials)
 
 
 if __name__ == '__main__':

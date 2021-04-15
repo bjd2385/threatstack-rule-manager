@@ -15,7 +15,6 @@ import uuid
 import configparser
 
 from functools import wraps
-from settings import env
 from api import API
 
 
@@ -41,12 +40,12 @@ class State:
     """
     Manage local and remote organizational state through OS-level calls and API calls.
     """
-    def __init__(self, org_id: str, user_id: str, api_key: str, state_dir: str, state_file: str) -> None:
+    def __init__(self, state_dir: str, state_file: str, org_id: str, user_id: str ='', api_key: str ='') -> None:
+        self.state_dir = state_dir
+        self.state_file = state_file
         self.org_id = org_id
         self.user_id = user_id
         self.api_key = api_key
-        self.state_dir = state_dir
-        self.state_file = state_file
 
         self.credentials = {
             'user_id': user_id,
@@ -82,7 +81,7 @@ class State:
     def org_id(self) -> None:
         """
         Capture the side affect of deleting the organization's directory in the local filesystem. This is not a change
-        that has to be pushed in any way.
+        that has to be pushed, since you can't delete an organization in the platform.
 
         Returns:
             Nothing.
@@ -101,8 +100,8 @@ class State:
 
     def refresh(self) -> 'State':
         """
-        Effectively `push`'s opposite - instead of pushing local state onto the remote, pull all of the remote
-        state and copy it over the local state (effectively deleting the local state).
+        Effectively `push`'s opposite - instead of pushing local state onto the remote platform state, pull all of the
+        remote state and copy it over the local state (effectively deleting the local state).
 
         Returns:
             A State object.
