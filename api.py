@@ -1,7 +1,8 @@
 """
 Manage API calls to TS.
 
-All response objects are returned in a POSTable format, so we can store them on disk that way.
+All response objects are returned in a POSTable format, so we can store them on disk that way (and don't have to edit
+them later).
 """
 
 from typing import Optional, Dict, Callable, Type, Any
@@ -152,6 +153,7 @@ class API:
             A dictionary of rulesets and their rules.
         """
         data = self._get('https://api.threatstack.com/v2/rulesets')
+
         return data
 
     def get_ruleset(self, ruleset_id: str) -> Dict:
@@ -185,15 +187,12 @@ class API:
             The ruleset and a verbose listing of the rules underneath it.
         """
         data = self._get(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules')
-        filtered_data = []
-        print(data)
-        for rule in data['rules']:
-            rule_id = rule['id']
+        for i, rule in enumerate(data['rules']):
             # Remove non-POSTable fields by
             # https://apidocs.threatstack.com/v2/rule-sets-and-rules/create-rule-endpoint
             for field in ('rulesetId', 'updatedAt', 'createdAt'):
-                if field in data[rule_id]:
-                    data['rules'][rule].pop(field)
+                if field in data['rules'][i]:
+                    data['rules'][i].pop(field)
         return data
 
     def get_rule(self, ruleset_id: str, rule_id: str) -> Dict:
@@ -228,7 +227,9 @@ class API:
             The tag data.
         """
         data = self._get(f'https://api.threatstack.com/v2/rules/{rule_id}/tags')
-
+        for field in ('errors',):
+            if field in data:
+                data.pop(field)
         return data
 
     @retry(URLError, tries=3, delay=30.0)

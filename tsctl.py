@@ -248,7 +248,17 @@ def main() -> None:
     options = vars(parser.parse_args())
     print(options)
 
-    if options['diff']:
+    if options['list']:
+
+    elif options['refresh']:
+        state = read_json(state_file)
+        org_id = state['workspace']
+        if not org_id:
+            print('Must set a workspace/organization ID (--workspace) to automatically refresh.')
+            exit(1)
+        organization = State(state_directory, state_file, org_id, **credentials)
+        organization.refresh()
+    elif options['diff']:
         diff(state_file)
     elif options['switch']:
         org_id = options['switch']
