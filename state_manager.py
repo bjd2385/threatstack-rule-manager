@@ -3,7 +3,7 @@ Purpose of the state manager is to provide a common API between local filesystem
 Threat Stack API-supported app rules' state changes.
 """
 
-from typing import Dict, Optional, Callable, List, Any, Tuple
+from typing import Dict, Optional, Callable, Any, Tuple
 
 import logging
 import uuid

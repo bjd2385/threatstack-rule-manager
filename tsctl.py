@@ -249,7 +249,7 @@ def main() -> None:
     print(options)
 
     if options['list']:
-
+        ...
     elif options['refresh']:
         state = read_json(state_file)
         org_id = state['workspace']
