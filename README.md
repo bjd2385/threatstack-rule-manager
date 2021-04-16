@@ -29,11 +29,10 @@ My current view is that the state directory will be structured like ~
 │   ├── 6bd566f5-d63c-11e9-bc18-196d1feb576b
 │   │   ├── 6bd69f79-d63c-11e9-bc18-4de0411d891c
 │   │   │   ├── rule.json
-│   │   │   └── suppressions.json
+│   │   │   └── tags.json
 │   │   └── ruleset.json
 │   ├── 6be3e51a-d63c-11e9-bc18-01fe680446ed
 │   └── 6c2078d1-d63c-11e9-bc18-1b06bdc4074a
-├── .git
 ├── .gitignore
 └── .threatstack.state.json
 ```
@@ -48,3 +47,7 @@ The `.threatstack.state.json` state file tracks local organization and cross-org
 * `LOGLEVEL`: (optional, default: `INFO`)
 * `LAZY_EVAL`: (optional, default: `false`)
 * `CONFIG_DIR`: (optional, default: `~/.threatstack`)
+
+### TODOs
+
+1. Per Ryan Plessner, need to check request headers in the `utils.retry` decorator so that if sleep time is not set, it will wait the appropriate amount of time on '429s.

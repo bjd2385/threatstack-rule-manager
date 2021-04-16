@@ -9,6 +9,7 @@ from typing import Tuple, Dict
 
 from argparse import ArgumentParser, MetavarTypeHelpFormatter
 from state_manager import State
+from utils import read_json, write_json
 
 import logging
 import configparser
@@ -16,13 +17,13 @@ import os
 import json
 
 
-def initialize_state_directory() -> Tuple[str, str, Dict[str, str]]:
+def config_parse() -> Tuple[str, str, Dict[str, str]]:
     """
-    Initialize the state directory in the user's home directory.
+    Initialize the state directory in the user's home directory and parse config options.
 
     Returns:
         A tuple of the base state directory path (within which all organization changes will be made) and the state
-        file path (where these changes will be tracked).
+        file path (where these changes will be tracked), as well as API credentials.
     """
     home = os.path.expanduser('~') + '/'
     conf = home + '.threatstack.conf'
@@ -44,8 +45,8 @@ def initialize_state_directory() -> Tuple[str, str, Dict[str, str]]:
         state_file = '.threatstack.state.json'
 
     state_directory_path = home \
-                            + ('/' if not (home.endswith('/') or state_directory.startswith('/')) else '') \
-                            + ((state_directory + '/') if not state_directory.endswith('/') else state_directory)
+        + ('/' if not (home.endswith('/') or state_directory.startswith('/')) else '') \
+        + ((state_directory + '/') if not state_directory.endswith('/') else state_directory)
     state_file_path = state_directory_path + state_file
 
     if not os.path.isdir(state_directory_path):
@@ -57,8 +58,15 @@ def initialize_state_directory() -> Tuple[str, str, Dict[str, str]]:
     if not os.path.isfile(state_file_path) or os.path.getsize(state_file_path) < 17:
         # Write the base config to local state.
         logging.debug(f'Initializing state directory tree.')
-        with open(state_file_path, 'w+') as f:
-            json.dump({'workspace': ''}, f)
+        #with open(state_file_path, 'w+') as f:
+        #    json.dump({'workspace': '', 'organizations': []}, f)
+        write_json(
+            state_file_path,
+            {
+                'workspace': '',
+                'organizations': []
+            }
+        )
     else:
         # TODO: Ensure the existing file at least conforms to the required schema.
         ...
@@ -88,47 +96,65 @@ def initialize_state_directory() -> Tuple[str, str, Dict[str, str]]:
     return state_directory_path, state_file_path, credentials
 
 
-def workspace(state_file: str, org_id: str, credentials: Dict[str, str]) -> State:
+def vcs_gitignore(state_dir: str, state_file_name: str) -> None:
+    """
+    Drop a default `.gitignore` in the state directory to ignore unimportant files in the event a user wants to start
+    using VCS.
+
+    Args:
+        state_dir: directory all state is stored within (likely ~/.threatstack/).
+
+    Returns:
+        Nothing.
+    """
+    files = [
+        state_file_name
+    ]
+    with open(state_dir + '.gitignore', 'w+') as f:
+        for file in files:
+            f.write(file + '\n')
+
+
+def workspace(state_dir: str, state_file: str, org_id: str, credentials: Dict[str, str]) -> State:
     """
     Change the current workspace by updating the organization ID in the state file.
 
     Args:
+        state_dir: location of the state directory.
         state_file: location of the state file to be parsed from disk and updated.
         org_id: organization ID to change the current workspace to.
+        credentials: if lazy evaluation is disabled and live changes are pushed, credentials are necessary.
 
     Returns:
         A State object.
     """
-    with open(state_file, 'r+') as f:
-        state = json.load(f)
-        state['workspace'] = org_id
-        f.seek(0)
-        json.dump(state, f)
-
-    new_state = State(
-        
-    )
-
-    new_state.refresh()
+    state = read_json(state_file)
+    state['workspace'] = org_id
+    write_json(state_file, state)
+    new_state = State(state_dir, state_file, org_id, **credentials)
+    return new_state
 
 
-def diff(self, file: str) -> Dict:
+def diff(state_file: str) -> None:
     """
     Output a nicely formatted diff of local state and the remote/platform state for the current workspace. This
-    function essentially allows you to view the local state file that tracks what is to be pushed, based on the
+    function basically just allows you to view the local state file that tracks what is to be pushed, based on the
     last refresh's returns at the organizations' level.
 
     Args:
-        file: location of the state file.
+        state_file: location of the state file.
 
     Returns:
-        A dictionary with the following schema ~
-        TODO: complete this schema
+        Nothing.
     """
+    with open(state_file, 'r') as f:
+        print(json.dumps(json.load(f), indent=2))
 
 
 def main() -> None:
-    state_directory, state_file, credentials = initialize_state_directory()
+    state_directory, state_file, credentials = config_parse()
+    vcs_gitignore(state_directory, state_file.split('/')[-1])
+    print(state_directory, state_file, credentials)
 
     parser = ArgumentParser(description=__doc__,
                             formatter_class=MetavarTypeHelpFormatter,
@@ -195,17 +221,22 @@ def main() -> None:
     )
 
     group.add_argument(
+        '-t', '--update-tags', dest='create_tag', nargs=2, type=str, metavar=('RULE', 'FILE'),
+        help='(lazy) Create or update tags on a rule.'
+    )
+
+    group.add_argument(
         '-r', '--refresh', dest='refresh', action='store_true',
         help='Refresh our local state of the organization\'s rules.'
     )
 
     group.add_argument(
         '-p', '--push', dest='push', action='store_true',
-        help='Push local state to remote state.'
+        help='Push local state to remote state (across all organizations).'
     )
 
     group.add_argument(
-        '-F', '--diff', dest='diff', action='store_true',
+        '-s', '--diff', '--state', '--plan', dest='diff', action='store_true',
         help='View the state file, or the difference between the local state and remote state.'
     )
 
@@ -218,11 +249,10 @@ def main() -> None:
     print(options)
 
     if options['diff']:
-        with open(state_file, 'r') as f:
-           print(json.dumps(json.load(f), indent=2))
+        diff(state_file)
     elif options['switch']:
         org_id = options['switch']
-        workspace(state_file, org_id, credentials)
+        workspace(state_directory, state_file, org_id, credentials)
 
 
 if __name__ == '__main__':

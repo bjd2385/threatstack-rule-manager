@@ -1,21 +1,19 @@
 """
 Purpose of the state manager is to provide a common API between local filesystem state changes (lazy) and remote,
 Threat Stack API-supported app rules' state changes.
-
-Per the above, the state management class is broken down into two major parts. Regardless, the
-
-1) if
 """
 
 from typing import Dict, Optional, Callable, List, Any, Tuple
 
-import json
 import logging
 import uuid
-import configparser
+import os
+import shutil
 
 from functools import wraps
 from api import API
+from utils import read_json, write_json
+from urllib.error import URLError
 
 
 def lazy(f: Callable, metavars: Optional[Tuple[str, ...]] =None) -> Callable:
@@ -40,10 +38,9 @@ class State:
     """
     Manage local and remote organizational state through OS-level calls and API calls.
     """
-    def __init__(self, state_dir: str, state_file: str, org_id: str, user_id: str ='', api_key: str ='') -> None:
+    def __init__(self, state_dir: str, state_file: str, org_id: str, user_id: str, api_key: str) -> None:
         self.state_dir = state_dir
         self.state_file = state_file
-        self.org_id = org_id
         self.user_id = user_id
         self.api_key = api_key
 
@@ -52,6 +49,8 @@ class State:
             'api_key': api_key,
             'org_id': org_id
         }
+
+        self.org_id = org_id
 
     @property
     def org_id(self) -> str:
@@ -77,17 +76,6 @@ class State:
         self._org_id = value
         self._create_organization(value)
 
-    @org_id.deleter
-    def org_id(self) -> None:
-        """
-        Capture the side affect of deleting the organization's directory in the local filesystem. This is not a change
-        that has to be pushed, since you can't delete an organization in the platform.
-
-        Returns:
-            Nothing.
-        """
-        self._delete_organization(self.org_id)
-
     def push(self) -> bool:
         """
         Push local state onto remote platform state. This push occurs organization-by-organization according to the local
@@ -98,28 +86,96 @@ class State:
             True if all API calls were successful.
         """
 
-    def refresh(self) -> 'State':
+    def refresh(self, org_id: Optional[str] =None) -> 'State':
         """
         Effectively `push`'s opposite - instead of pushing local state onto the remote platform state, pull all of the
-        remote state and copy it over the local state (effectively deleting the local state).
+        remote organization state and copy it over the local organization-level state (effectively overwriting the local
+        organization's state). Deletes prior local state and clears state file of organization change.
+
+        Args:
+            org_id: optionally specify an organization ID to refresh upon. NOTE: Should only be specified in the case
+                that you're copying a rule or ruleset from one organization to another and that destination organization
+                does not exist in local state.
 
         Returns:
-            A State object.
+            Nothing.
         """
+        if org_id == self.org_id:
+            api = API(**self.credentials)
+
+            # Back up this organization's local state until a successful copy down has been performed.
+            backup_dir = self.state_dir + self.org_id + '/.backup/'
+            os.mkdir(backup_dir)
+            for ruleset in os.listdir(self.state_dir + self.org_id):
+                if ruleset != '.backup':
+                    shutil.move(self.state_dir + self.org_id + '/' + ruleset, backup_dir + ruleset)
+
+            # To decrease risk of losing our backup, let's pull down remote state to yet another hidden dir.
+            remote_dir = self.state_dir + self.org_id + '/.remote/'
+            os.mkdir(remote_dir)
+
+            # Collect rulesets under this organization and create corresponding directories.
+            try:
+                rulesets = api.get_rulesets()
+                for ruleset in rulesets['rulesets']:
+                    ruleset_id = ruleset['id']
+                    print(ruleset_id)
+                    print(api.get_ruleset_rules(ruleset_id))
+                exit(0)
+            except URLError as err:
+                # Restore backup, refresh unsuccessful; clear remote state directory.
+                logging.error(f'Could not refresh organization {self.org_id} local state, restoring backup')
+                shutil.rmtree(remote_dir)
+                for ruleset in os.listdir(backup_dir):
+                    shutil.move(backup_dir + ruleset, self.state_dir + self.org_id + '/' + ruleset)
+                else:
+                    # backup directory should be clear, so let's remove it.
+                    os.rmdir(backup_dir)
+            else:
+                # Clear this organization's local state and delete the backup, refresh successful.
+                for ruleset in os.listdir(remote_dir):
+                    shutil.move(remote_dir + ruleset, self.state_dir + self.org_id + '/' + ruleset)
+                shutil.rmtree(backup_dir)
+                self._clear_organization_state()
+                return self
+        else:
+            alt_state = State(self.state_dir, self.state_file, org_id, self.user_id, self.api_key)
+            alt_state.refresh()
+            return alt_state
 
     ## Local filesystem/state high level API.
 
+    def _clear_organization_state(self) -> bool:
+        """
+        Clear local organization state from the tracking file. This should only be called internally as a side effect
+        of another process, such as refreshing the organization's local state (which results in wiping the current
+        directory structure and replacing it with the remote state).
+
+        Returns:
+            True if changes were made to the local state file, False otherwise.
+        """
+        state = read_json(self.state_file)
+        change = state['organizations'].pop(self.org_id)
+        write_json(self.state_file, state)
+        return bool(change)
+
     def _create_organization(self, org_id: str) -> bool:
         """
-        Create a local organization directory if it doesn't already exist and update the local config to point at
-        the new organization.
+        Create a local organization directory if it doesn't already exist, in addition to calling a refresh on that
+        directory if that's the case.
 
         Args:
             org_id: organization ID to create in the local state directory if it does not already.
 
         Returns:
-            True if the creation and switch was successful, False otherwise.
+            True if the organization had to be created, False otherwise.
         """
+        if not os.path.isdir(self.state_dir + org_id):
+            os.mkdir(self.state_dir + org_id)
+            self.refresh(org_id)
+            return True
+        else:
+            return False
 
     def _delete_organization(self, org_id: str) -> bool:
         """
@@ -129,8 +185,15 @@ class State:
             org_id: organization ID to delete in the local state directory.
 
         Returns:
-            True if the deletion was successful, False otherwise.
+            True if there was a deletion, False otherwise.
         """
+        if os.path.isdir(self.state_dir + org_id):
+            # TODO: investigate whether it'd be better to call `onerror` here
+            shutil.rmtree(self.state_dir + org_id, ignore_errors=True)
+            self._clear_organization_state()
+            return True
+        else:
+            return False
 
     def _create_ruleset(self, org_id: str, ruleset_id: str, file: str) -> bool:
         """

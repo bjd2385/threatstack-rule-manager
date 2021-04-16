@@ -1,64 +1,37 @@
-from typing import Type, Callable, Any
+from typing import Type, Callable, Any, Dict
 
 import logging
+import json
+import os
 
 from functools import wraps
 from time import sleep
 
 
-def retry(exc: Type[Exception], tries: int =3, delay: float =2.0) -> Callable:
+def read_json(file: str) -> Dict:
     """
-    A general request retry decorator with optional time delay.
+    Common function for reading JSON from disk into a Python dictionary.
 
     Args:
-        exc: exception to catch and retry on.
-        tries: number of times to retry the wrapped function call. When `0`, retries indefinitely.
-        delay: positive wait period.
-
-    Raises:
-        A RetryLimitExceeded exception in the event that the call could not be completed after the
-        allotted number of attempts.
+        file: location of file to read in from disk.
 
     Returns:
-        Either the result of a successful function call (be it via retrying or not).
+        The file's contents as a Python Dict.
     """
-    if tries < 0 or delay < 0:
-        raise ValueError('Expected positive `tries` and `delay` values, received: '
-                         f'tries {tries}, delay {delay}')
+    with open(file, 'r') as f:
+        return json.load(f)
 
-    def _f(f: Callable) -> Callable:
 
-        class RetryLimitExceeded(OSError):
-            pass
+def write_json(file: str, data: Dict) -> None:
+    """
+    Common function for writing a Python dictionary as JSON to disk; overwrites files if they already exist.
 
-        @wraps(f)
-        def new_f(*args: Any, **kwargs: Any) -> Any:
-            res: Any = None
+    Args:
+        file: location of file to write (or overwrite).
+        data: dictionary to write to disk.
 
-            def call() -> bool:
-                nonlocal res
-                try:
-                    res = f(*args, **kwargs)
-                    return True
-                except exc as msg:
-                    logging.info(f'Retrying: {msg} ~ {res}')
-                    sleep(delay)
-                    return False
-
-            if tries > 0:
-                for _ in range(tries):
-                    if call():
-                        return res
-                else:
-                    raise RetryLimitExceeded(
-                        f'Exceeded max of {tries} tries. Raise the delay limit of {delay} or number of tries'
-                    )
-            else:
-                while not call():
-                    pass
-                else:
-                    return res
-
-        return new_f
-
-    return _f
+    Returns:
+        Nothing
+    """
+    with open(file, 'w') as f:
+        json.dump(data, f)
