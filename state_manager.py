@@ -100,28 +100,47 @@ class State:
         Returns:
             Nothing.
         """
-        api = API(**self.credentials)
-
-        # Back up this organization's local state until a successful copy down has been performed.
+        # If there's a former failed run of some kind, let's clear the board to ensure we don't mix local state
+        # with now untracked local state.
+        remote_dir = self.state_dir + self.org_id + '/.remote/'
         backup_dir = self.state_dir + self.org_id + '/.backup/'
+
+        if os.path.isdir(remote_dir):
+            # We can just delete this (likely) partial remote state capture.
+            shutil.rmtree(remote_dir)
+        if os.path.isdir(backup_dir):
+            # I'm going to let this fail if anyone ever comes across trying to copy duplicate files or dirs back
+            # over the parent dir, because this should not happen. But, if it does, I will investigate with them
+            # how that occurred.
+            for ruleset in os.listdir(backup_dir):
+                shutil.move(backup_dir + ruleset, self.state_dir + self.org_id)
+            os.rmdir(backup_dir)
+
         os.mkdir(backup_dir)
+        os.mkdir(remote_dir)
+
         for ruleset in os.listdir(self.state_dir + self.org_id):
-            if ruleset != '.backup':
+            if ruleset != '.backup' and ruleset != '.remote':
                 shutil.move(self.state_dir + self.org_id + '/' + ruleset, backup_dir + ruleset)
 
-        # To decrease risk of losing our backup, let's pull down remote state to yet another hidden dir.
-        remote_dir = self.state_dir + self.org_id + '/.remote/'
-        os.mkdir(remote_dir)
+        api = API(**self.credentials)
 
         # Collect rulesets under this organization and create corresponding directories.
         try:
             rulesets = api.get_rulesets()
             for ruleset in rulesets['rulesets']:
                 ruleset_id = ruleset['id']
+
+                for field in ('id', 'createdAt', 'updatedAt'):
+                    ruleset.pop(field)
+
                 print(f'Refreshing ruleset ID \'{ruleset_id}\'')
+
                 ruleset_rules = api.get_ruleset_rules(ruleset_id)
                 ruleset_dir = remote_dir + ruleset_id + '/'
                 os.mkdir(ruleset_dir)
+                write_json(ruleset_dir + 'ruleset.json', ruleset)
+                
                 for rule in ruleset_rules['rules']:
                     rule_id = rule['id']
                     print(f'\tPulling rule and tag JSON on rule ID \'{rule_id}\'')
@@ -130,7 +149,7 @@ class State:
                     os.mkdir(rule_dir)
                     write_json(rule_dir + 'rule.json', rule)
                     write_json(rule_dir + 'tags.json', rule_tags)
-        except URLError:
+        except (URLError, KeyboardInterrupt):
             # Restore backup, refresh unsuccessful; delete remote state directory.
             logging.error(f'Could not refresh organization {self.org_id} local state, restoring backup')
             shutil.rmtree(remote_dir)
@@ -277,13 +296,21 @@ class State:
 
         """
 
-    def lst(self) -> 'State':
+    def lst(self) -> str:
         """
-        List the ruleset and rule hierarchy under an organization, based on local state.
+        List the ruleset and rule hierarchy under an organization, based on local state. This is meant to be
+        a more human-readable view of the organization and organization's rules.
 
         Returns:
-            A State object.
+            A nicer view of an organization's rulesets and rules.
         """
+        view = dict()
+        organization_dir = self.state_dir + self.org_id + '/'
+        rulesets = os.listdir(organization_dir)
+        for ruleset in rulesets:
+            rules = os.listdir(organization_dir + ruleset)
+            view[ruleset] = rules
+        return view
 
     ## Remote state management API.
 

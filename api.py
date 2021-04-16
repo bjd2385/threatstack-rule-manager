@@ -145,7 +145,8 @@ class API:
 
     def get_rulesets(self) -> Dict:
         """
-        Return a list of rulesets and rules thereunder.
+        Return a list of rulesets and rules thereunder. This isn't meant to return an object in a POSTable format,
+        unlike other methods.
 
         https://apidocs.threatstack.com/v2/rule-sets-and-rules/list-ruleset
 
@@ -187,12 +188,15 @@ class API:
             The ruleset and a verbose listing of the rules underneath it.
         """
         data = self._get(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules')
+
+        # Filter rules' fields.
         for i, rule in enumerate(data['rules']):
             # Remove non-POSTable fields by
             # https://apidocs.threatstack.com/v2/rule-sets-and-rules/create-rule-endpoint
             for field in ('rulesetId', 'updatedAt', 'createdAt'):
                 if field in data['rules'][i]:
                     data['rules'][i].pop(field)
+
         return data
 
     def get_rule(self, ruleset_id: str, rule_id: str) -> Dict:

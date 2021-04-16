@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-A powerful Threat Stack rule manager for your terminal.
+A Threat Stack rule manager for your terminal.
 """
 
 from typing import Tuple, Dict
@@ -158,7 +158,7 @@ def main() -> None:
 
     parser = ArgumentParser(description=__doc__,
                             formatter_class=MetavarTypeHelpFormatter,
-                            epilog=f'Please remember to commit your changes on \'{state_directory}\' to a git repository to maintain version control.')
+                            epilog=f'Remember to commit and push your changes on \'{state_directory}\' to a git repository to maintain version control.')
 
     # FIXME: there's probably a bug on calls to `add_mutually_exclusive_group` in that required arguments are evaluated
     #  or parser before discerning that more than one flag in the mutually exclusive group was defined.
@@ -249,7 +249,13 @@ def main() -> None:
     print(options)
 
     if options['list']:
-        ...
+        state = read_json(state_file)
+        org_id = state['workspace']
+        if not org_id:
+            print('Must set a workspace/organization ID (--workspace) to list rulesets and rules.')
+            exit(1)
+        organization = State(state_directory, state_file, org_id, **credentials)
+        print(organization.lst())
     elif options['refresh']:
         state = read_json(state_file)
         org_id = state['workspace']
