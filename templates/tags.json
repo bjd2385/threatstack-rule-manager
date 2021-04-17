@@ -1,0 +1,18 @@
+{
+  # Optional
+  "inclusion": [
+    {
+      "source": "ec2",
+      "key": "",
+      "value": "(Optional)"
+    }
+  ],
+  # Optional
+  "exclusion": [
+    {
+      "source": "ec2",
+      "key": "",
+      "value": "(Optional)"
+    }
+  ]
+}

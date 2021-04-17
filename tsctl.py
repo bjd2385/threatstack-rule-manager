@@ -236,13 +236,18 @@ def main() -> None:
     )
 
     group.add_argument(
-        '-s', '--diff', '--state', '--plan', dest='diff', action='store_true',
-        help='View the state file, or the difference between the local state and remote state.'
+        '-s', '--diff', '--plan', dest='diff', action='store_true',
+        help=f'View the state file, or the tracked difference between local state and remote state.'
     )
 
     group.add_argument(
         '-w', '--workspace', dest='switch', type=str, metavar=('ORGID',),
         help='Set the organization ID within which you are working, automatically starts a refresh.'
+    )
+
+    parser.add_argument(
+        '--colorful', dest='color', action='store_true',
+        help='Add xterm coloring to output. Only works on certain commands (--list).'
     )
 
     options = vars(parser.parse_args())
@@ -255,7 +260,7 @@ def main() -> None:
             print('Must set a workspace/organization ID (--workspace) to list rulesets and rules.')
             exit(1)
         organization = State(state_directory, state_file, org_id, **credentials)
-        organization.lst()
+        organization.lst(colorful=options['color'])
     elif options['refresh']:
         state = read_json(state_file)
         org_id = state['workspace']

@@ -17,14 +17,14 @@ from functools import wraps
 from time import sleep
 
 
-def retry(exc: Type[Exception], tries: int =3, delay: float =2.0) -> Callable:
+def retry(exc: Type[Exception], tries: int =3, delay: Optional[float] =None) -> Callable:
     """
     A general request retry decorator with optional time delay.
 
     Args:
         exc: exception to catch and retry on.
         tries: number of times to retry the wrapped function call. When `0`, retries indefinitely.
-        delay: positive wait period.
+        delay: positive wait period, or None to examine header data from TS requests.
 
     Raises:
         A RetryLimitExceeded exception in the event that the call could not be completed after the
@@ -133,6 +133,7 @@ class API:
                 'Content-Type': 'application/json'
             }
         )
+        print(type(response), response)
 
         try:
             return response.json()

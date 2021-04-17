@@ -51,3 +51,5 @@ The `.threatstack.state.json` state file tracks local organization and cross-org
 ### TODOs
 
 1. Per Ryan Plessner, need to check request headers in the `utils.retry` decorator so that if sleep time is not set, it will wait the appropriate amount of time on '429s.
+2. Add state modification, so you can add local state to the state file that will be pushed when the user runs `--push` and viewable with `--diff`.
+3. Add an `(MODIFIED)` string to the end of rules or rulesets under `--list` output that reside in the state file and will be pushed.
