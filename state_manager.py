@@ -51,6 +51,7 @@ class State:
         }
 
         self.org_id = org_id
+        self.organization_dir = state_dir + org_id + '/'
 
     @property
     def org_id(self) -> str:
@@ -102,8 +103,8 @@ class State:
         """
         # If there's a former failed run of some kind, let's clear the board to ensure we don't mix local state
         # with now untracked local state.
-        remote_dir = self.state_dir + self.org_id + '/.remote/'
-        backup_dir = self.state_dir + self.org_id + '/.backup/'
+        remote_dir = self.organization_dir + '.remote/'
+        backup_dir = self.organization_dir + '.backup/'
 
         if os.path.isdir(remote_dir):
             # We can just delete this (likely) partial remote state capture.
@@ -113,15 +114,15 @@ class State:
             # over the parent dir, because this should not happen. But, if it does, I will investigate with them
             # how that occurred.
             for ruleset in os.listdir(backup_dir):
-                shutil.move(backup_dir + ruleset, self.state_dir + self.org_id)
+                shutil.move(backup_dir + ruleset, self.organization_dir)
             os.rmdir(backup_dir)
 
         os.mkdir(backup_dir)
         os.mkdir(remote_dir)
 
-        for ruleset in os.listdir(self.state_dir + self.org_id):
+        for ruleset in os.listdir(self.organization_dir):
             if ruleset != '.backup' and ruleset != '.remote':
-                shutil.move(self.state_dir + self.org_id + '/' + ruleset, backup_dir + ruleset)
+                shutil.move(self.organization_dir + ruleset, backup_dir + ruleset)
 
         api = API(**self.credentials)
 
@@ -140,7 +141,7 @@ class State:
                 ruleset_dir = remote_dir + ruleset_id + '/'
                 os.mkdir(ruleset_dir)
                 write_json(ruleset_dir + 'ruleset.json', ruleset)
-                
+
                 for rule in ruleset_rules['rules']:
                     rule_id = rule['id']
                     print(f'\tPulling rule and tag JSON on rule ID \'{rule_id}\'')
@@ -154,14 +155,14 @@ class State:
             logging.error(f'Could not refresh organization {self.org_id} local state, restoring backup')
             shutil.rmtree(remote_dir)
             for ruleset in os.listdir(backup_dir):
-                shutil.move(backup_dir + ruleset, self.state_dir + self.org_id + '/' + ruleset)
+                shutil.move(backup_dir + ruleset, self.organization_dir + ruleset)
             else:
                 # backup directory should be clear, so let's remove it.
                 os.rmdir(backup_dir)
         else:
             # Clear this organization's local state and delete the backup, refresh successful.
             for ruleset in os.listdir(remote_dir):
-                shutil.move(remote_dir + ruleset, self.state_dir + self.org_id + '/' + ruleset)
+                shutil.move(remote_dir + ruleset, self.organization_dir + ruleset)
             shutil.rmtree(backup_dir)
             shutil.rmtree(remote_dir)
             self._clear_organization_state()
@@ -296,21 +297,22 @@ class State:
 
         """
 
-    def lst(self) -> str:
+    def lst(self) -> None:
         """
         List the ruleset and rule hierarchy under an organization, based on local state. This is meant to be
         a more human-readable view of the organization and organization's rules.
 
         Returns:
-            A nicer view of an organization's rulesets and rules.
+            Nothing.
         """
-        view = dict()
-        organization_dir = self.state_dir + self.org_id + '/'
-        rulesets = os.listdir(organization_dir)
+        rulesets = os.listdir(self.organization_dir)
         for ruleset in rulesets:
-            rules = os.listdir(organization_dir + ruleset)
-            view[ruleset] = rules
-        return view
+            ruleset_data = read_json(self.organization_dir + ruleset + '/ruleset.json')
+            rule_ids = ruleset_data['rules']
+            print(ruleset_data['name'])
+            for rule_id in rule_ids:
+                rule_data = read_json(self.organization_dir + ruleset + '/' + rule_id + '/rule.json')
+                print(f'\t{rule_data["name"]} ({rule_data["type"]})')
 
     ## Remote state management API.
 

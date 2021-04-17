@@ -255,7 +255,7 @@ def main() -> None:
             print('Must set a workspace/organization ID (--workspace) to list rulesets and rules.')
             exit(1)
         organization = State(state_directory, state_file, org_id, **credentials)
-        print(organization.lst())
+        organization.lst()
     elif options['refresh']:
         state = read_json(state_file)
         org_id = state['workspace']
