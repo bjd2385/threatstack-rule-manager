@@ -77,7 +77,7 @@ def retry(exc: Type[Exception], tries: int =3, delay: Optional[float] =None) -> 
 
 class API:
     """
-    API object that provides an interface to the remote organizations' state.
+    API object that provides a higher level interface to the remote organizations' state.
     """
     def __init__(self, user_id: str, api_key: str, org_id: str) -> None:
         self._user = user_id
@@ -160,7 +160,7 @@ class API:
 
     def get_ruleset(self, ruleset_id: str) -> Dict:
         """
-        Return a particular ruleset and rules thereunder.
+        Return a particular ruleset and rule IDs thereunder.
 
         https://apidocs.threatstack.com/v2/rule-sets-and-rules/get-a-ruleset
 

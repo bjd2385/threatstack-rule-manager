@@ -154,7 +154,6 @@ def diff(state_file: str) -> None:
 def main() -> None:
     state_directory, state_file, credentials = config_parse()
     vcs_gitignore(state_directory, state_file.split('/')[-1])
-    print(state_directory, state_file, credentials)
 
     parser = ArgumentParser(description=__doc__,
                             formatter_class=MetavarTypeHelpFormatter,
@@ -251,7 +250,6 @@ def main() -> None:
     )
 
     options = vars(parser.parse_args())
-    print(options)
 
     if options['list']:
         state = read_json(state_file)
