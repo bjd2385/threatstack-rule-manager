@@ -250,7 +250,7 @@ def main() -> None:
         help='Add xterm coloring to output. Only works on certain commands (--list).'
     )
 
-    parser.add_argument(
+    group.add_argument(
         '-v', '--version', dest='version', action='store_true',
         help='Print the version of \'tsctl\'.'
     )
@@ -279,5 +279,4 @@ def main() -> None:
         org_id = options['switch']
         workspace(state_directory, state_file, org_id, credentials)
     elif options['version']:
-        # FIXME
         print(f'tsctl v{__version__}')
