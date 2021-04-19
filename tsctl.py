@@ -8,7 +8,7 @@ A Threat Stack rule manager for your terminal.
 from typing import Tuple, Dict
 
 from argparse import ArgumentParser, MetavarTypeHelpFormatter
-from state_manager import State
+from state import State
 from utils import read_json, write_json
 
 import logging
