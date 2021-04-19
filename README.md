@@ -86,6 +86,8 @@ The state file (by default, `~/.threatstack/.threatstack.state.json`) tracks loc
 ### TODOs
 
 1. Add an `(MODIFIED)` string to the end of rules or rulesets under `--list` output that reside in the state file and will be pushed.
+2. Add proper `logging` implementation throughout the module.
+3. Set up GH Actions when the repo is tagged.
 
 ### Development Notes
 

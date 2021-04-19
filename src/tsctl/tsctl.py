@@ -1,6 +1,3 @@
-#! /usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 """
 A Threat Stack rule manager for your terminal.
 """
@@ -8,6 +5,7 @@ A Threat Stack rule manager for your terminal.
 from typing import Tuple, Dict
 
 from argparse import ArgumentParser, MetavarTypeHelpFormatter
+from textwrap import dedent
 from .state import State
 from .utils import read_json, write_json
 from . import __version__
@@ -29,12 +27,34 @@ def config_parse() -> Tuple[str, str, Dict[str, str]]:
     home = os.path.expanduser('~') + '/'
     conf = home + '.threatstack.conf'
 
+    # If this configuration file is not present, write a default one.
+    if not os.path.isfile(conf):
+        default_conf_file = dedent(
+            """
+            [DEFAULT]
+            LAZY_EVAL = true
+            LOGLEVEL = ERROR
+            
+            [STATE]
+            STATE_DIR = .threatstack
+            STATE_FILE = .threatstack.state.json
+            """
+        )[1:]
+        with open(conf, 'w') as f:
+            f.write(default_conf_file)
+
     parser = configparser.ConfigParser()
     parser.read(conf)
 
-    # Collect default options, such as laziness.
-    if parser.default_section in parser.sections():
-        ...
+    # Collect default options, such as laziness and log level.
+    try:
+        default_section = parser['DEFAULT']
+        lazy_evaluation = default_section.get('LAZY_EVAL', fallback=True)
+        loglevel = default_section.get('LOGLEVEL', fallback='ERROR')
+    except 
+    else:
+        print(f'Must define DEFAULT section in \'{conf}\'.')
+        exit(1)
 
     # Set up the local state directory and a default state file, if it doesn't exist.
     if 'STATE' in parser.sections():
@@ -56,11 +76,9 @@ def config_parse() -> Tuple[str, str, Dict[str, str]]:
     else:
         logging.debug(f'Using state directory \'{state_directory_path}\' for local state')
 
-    if not os.path.isfile(state_file_path) or os.path.getsize(state_file_path) < 17:
+    if not os.path.isfile(state_file_path) or os.path.getsize(state_file_path) < 62:
         # Write the base config to local state.
         logging.debug(f'Initializing state directory tree.')
-        #with open(state_file_path, 'w+') as f:
-        #    json.dump({'workspace': '', 'organizations': []}, f)
         write_json(
             state_file_path,
             {
@@ -76,7 +94,7 @@ def config_parse() -> Tuple[str, str, Dict[str, str]]:
     if 'CREDENTIALS' in parser.sections():
         credentials = parser['CREDENTIALS']
         if 'USER_ID' not in credentials or 'API_KEY' not in credentials:
-            logging.error(f'Must set values for \'USER_ID\' and \'API_KEY\' in \'{conf}\' under CREDENTIALS header')
+            logging.error(f'Must set values for \'USER_ID\' and \'API_KEY\' in \'{conf}\' under CREDENTIALS section.')
             exit(1)
         else:
             credentials = {
@@ -87,14 +105,14 @@ def config_parse() -> Tuple[str, str, Dict[str, str]]:
         try:
             assert(all(os.getenv(v) is not None for v in ('USER_ID', 'API_KEY')))
         except AssertionError:
-            logging.error(f'Must set environment variables for \'USER_ID\' and \'API_KEY\' or define them in \'{conf}\'')
+            logging.error(f'Must set environment variables for \'USER_ID\' and \'API_KEY\' or define them in \'{conf}\' under CREDENTIALS section.')
             exit(1)
         credentials = {
             'user_id': os.getenv('USER_ID'),
             'api_key': os.getenv('API_KEY')
         }
 
-    return state_directory_path, state_file_path, credentials
+    return lazy_evaluation, state_directory_path, state_file_path, credentials
 
 
 def vcs_gitignore(state_dir: str, state_file_name: str) -> None:
@@ -153,7 +171,7 @@ def plan(state_file: str) -> None:
 
 
 def main() -> None:
-    state_directory, state_file, credentials = config_parse()
+    lazy_evaluation, state_directory, state_file, credentials = config_parse()
     vcs_gitignore(state_directory, state_file.split('/')[-1])
 
     parser = ArgumentParser(description=__doc__,

@@ -23,11 +23,11 @@ class RateLimitedError(Exception):
     Raised when an HTTPStatus.TOO_MANY_REQUESTS code is received.
     """
     def __init__(self, message: str ='', delay: float =30.0) -> None:
+        super().__init__(message)
         self.message = message
         self.delay = delay
-        super().__init__(message)
 
-    def __repr__(self):
+    def __str__(self):
         return f'RateLimitError(message="{self.message}", code="{HTTPStatus.TOO_MANY_REQUESTS}", "x-rate-limit-reset={self.delay}")'
 
 
@@ -55,11 +55,9 @@ def retry(tries: int) -> Callable:
                     res = f(*args, **kwargs)
                     return True
                 except RateLimitedError as msg:
-                    logging.error(msg)
                     sleep(msg.delay)
                     return False
                 except URLError as msg:
-                    logging.error(msg)
                     return False
 
             if tries > 0:
@@ -97,7 +95,7 @@ class API:
         self._sender: Optional[Sender] = None
         self._header: Optional[str] = None
 
-    def _update_sender(self, url: str, data: Optional[Dict]) -> None:
+    def _update_sender(self, url: str, data: Optional[Dict] =None) -> None:
         """
         Update the retrieved token.
 
@@ -143,7 +141,9 @@ class API:
             return response.json()
         except json.JSONDecodeError:
             if response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
-                raise RateLimitedError(delay=float(response.headers['x-rate-limit-reset']) / 1_000)
+                # Delay the minimal amount of time we can before running another request. `time.sleep` also isn't
+                # that accurate, so I add 1/4s for good measure, which is barely noticeable.
+                raise RateLimitedError(delay=float(response.headers['x-rate-limit-reset']) / 1_000 + 0.25)
             else:
                 raise URLError(
                     f'Did not get valid JSON in response: {response.text if response.text else response.reason} ~ {response.status_code}'

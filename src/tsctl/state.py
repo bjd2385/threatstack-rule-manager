@@ -1,6 +1,6 @@
 """
-Purpose of the state manager is to provide a common API between local filesystem state changes (lazy) and remote,
-Threat Stack API-supported app rules' state changes.
+The State manager class provides a common API between local filesystem state changes (lazy) and remote, Threat Stack
+API-supported app rule state changes.
 """
 
 from typing import Dict, Optional, Callable, Any, Tuple, Literal
@@ -10,10 +10,10 @@ import os
 import shutil
 
 from functools import wraps
-from .api import API
-from .utils import read_json, write_json, Color
 from urllib.error import URLError
 from uuid import uuid4
+from .api import API
+from .utils import read_json, write_json, Color
 
 
 RuleStatus = Literal['rule', 'tags', 'both', 'del']
