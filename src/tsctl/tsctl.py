@@ -227,7 +227,7 @@ def main() -> None:
 
     group.add_argument(
         '-r', '--refresh', dest='refresh', action='store_true',
-        help='Refresh our local state of the organization\'s rules.'
+        help='Refresh local copy of the organization\'s rules and flush local state.'
     )
 
     group.add_argument(

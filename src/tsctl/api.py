@@ -36,7 +36,6 @@ def retry(tries: int) -> Callable:
     A request retry decorator.
 
     Args:
-        exc: exceptions to catch and retry on.
         tries: number of times to retry the wrapped function call. When `0`, retries indefinitely.
 
     Returns:
@@ -98,7 +97,7 @@ class API:
         self._sender: Optional[Sender] = None
         self._header: Optional[str] = None
 
-    def _update_sender(self, url: str) -> None:
+    def _update_sender(self, url: str, data: Optional[Dict]) -> None:
         """
         Update the retrieved token.
 
@@ -111,6 +110,7 @@ class API:
         self._sender = Sender(
             credentials=self._credentials,
             url=url,
+            content=json.dumps(data) if data else data,
             method='GET',
             always_hash_content=False,
             content_type='application/json',
@@ -243,16 +243,100 @@ class API:
         return data
 
     @retry(tries=3)
-    def _put(self) -> Optional[Dict]:
-        ...
+    def _put(self, url: str, data: Dict) -> Optional[Dict]:
+        """
+        PUT request on a TS API endpoint using Hawk Auth.
+
+        Args:
+            url: the url (including endpoint and content) on which to make the request.
+
+        Returns:
+            A response on that endpoint, or nothing if an error is returned.
+        """
+        self._update_sender(url, data)
+
+        response = requests.put(
+            url=url,
+            data=json.dumps(data),
+            headers={
+                'Authorization': self._header,
+                'Content-Type': 'application/json'
+            }
+        )
+
+        try:
+            return response.json()
+        except json.JSONDecodeError:
+            if response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
+                raise RateLimitedError(delay=float(response.headers['x-rate-limit-reset']) / 1_000)
+            else:
+                raise URLError(
+                    f'Did not get valid JSON in response: {response.text if response.text else response.reason} ~ {response.status_code}'
+                )
 
     @retry(tries=3)
-    def _delete(self) -> Optional[Dict]:
-        ...
+    def _delete(self, url: str) -> Optional[Dict]:
+        """
+        DELETE request on a TS API endpoint using Hawk Auth.
+
+        Args:
+            url: the url (including endpoint and content) on which to make the request.
+
+        Returns:
+            A response on that endpoint, or nothing if an error is returned.
+        """
+        self._update_sender(url)
+
+        response = requests.delete(
+            url=url,
+            headers={
+                'Authorization': self._header,
+                'Content-Type': 'application/json'
+            }
+        )
+
+        try:
+            return response.json()
+        except json.JSONDecodeError:
+            if response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
+                raise RateLimitedError(delay=float(response.headers['x-rate-limit-reset']) / 1_000)
+            else:
+                raise URLError(
+                    f'Did not get valid JSON in response: {response.text if response.text else response.reason} ~ {response.status_code}'
+                )
 
     @retry(tries=3)
-    def _post(self) -> Optional[Dict]:
-        ...
+    def _post(self, url: str, data: Dict) -> Optional[Dict]:
+        """
+        POST request on a TS API endpoint using Hawk Auth.
+
+        Args:
+            url: the url (including endpoint and content) on which to make the request.
+            data: payload to submit to the endpoint.
+
+        Returns:
+            A response on that endpoint, or nothing if an error is returned.
+        """
+        self._update_sender(url, data)
+
+        response = requests.put(
+            url=url,
+            data=json.dumps(data),
+            headers={
+                'Authorization': self._header,
+                'Content-Type': 'application/json'
+            }
+        )
+
+        try:
+            return response.json()
+        except json.JSONDecodeError:
+            if response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
+                raise RateLimitedError(delay=float(response.headers['x-rate-limit-reset']) / 1_000)
+            else:
+                raise URLError(
+                    f'Did not get valid JSON in response: {response.text if response.text else response.reason} ~ {response.status_code}'
+                )
 
 
 def paginate(f: Callable) -> Optional[Dict]:
