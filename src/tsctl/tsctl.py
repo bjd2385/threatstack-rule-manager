@@ -31,7 +31,7 @@ def config_parse() -> Tuple[str, str, Dict[str, str]]:
     if not os.path.isfile(conf):
         default_conf_file = dedent(
             """
-            [DEFAULT]
+            [RUNTIME]
             LAZY_EVAL = true
             LOGLEVEL = ERROR
             
@@ -46,14 +46,13 @@ def config_parse() -> Tuple[str, str, Dict[str, str]]:
     parser = configparser.ConfigParser()
     parser.read(conf)
 
-    # Collect default options, such as laziness and log level.
-    try:
-        default_section = parser['DEFAULT']
+    # Collect runtime options, such as laziness and log level.
+    if 'RUNTIME' in parser.sections():
+        default_section = parser['RUNTIME']
         lazy_evaluation = default_section.get('LAZY_EVAL', fallback=True)
         loglevel = default_section.get('LOGLEVEL', fallback='ERROR')
-    except 
     else:
-        print(f'Must define DEFAULT section in \'{conf}\'.')
+        print(f'Must define RUNTIME section in \'{conf}\'.')
         exit(1)
 
     # Set up the local state directory and a default state file, if it doesn't exist.
@@ -249,12 +248,12 @@ def main() -> None:
     )
 
     group.add_argument(
-        '-p', '--push', dest='push', action='store_true',
+        '-s', '--push', dest='push', action='store_true',
         help='Push local state to remote state (across all organizations).'
     )
 
     group.add_argument(
-        '-s', '--plan', dest='plan', action='store_true',
+        '-p', '--plan', dest='plan', action='store_true',
         help=f'View the state file, or the tracked difference between local state and remote state.'
     )
 
