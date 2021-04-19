@@ -10,8 +10,8 @@ import os
 import shutil
 
 from functools import wraps
-from api import API
-from utils import read_json, write_json, Color
+from .api import API
+from .utils import read_json, write_json, Color
 from urllib.error import URLError
 from uuid import uuid4
 

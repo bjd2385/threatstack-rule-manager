@@ -5,7 +5,7 @@ All response objects are returned in a POSTable format, so we can store them on 
 them later).
 """
 
-from typing import Optional, Dict, Callable, Type, Any, Tuple
+from typing import Optional, Dict, Callable, Any
 
 import logging
 import requests
@@ -20,32 +20,24 @@ from http import HTTPStatus
 
 class RateLimitedError(Exception):
     """
-    Raised when our API rate limits our requests (typically on refresh or push).
+    Raised when an HTTPStatus.TOO_MANY_REQUESTS code is received.
     """
-    def __init__(self, message: str, error_code: int) -> None:
-        super().__init__(message)
+    def __init__(self, message: str ='', delay: float =30.0) -> None:
         self.message = message
-        self.error_code = error_code
+        self.delay = delay
+        super().__init__(message)
 
-    def __repr__(self) -> str:
-        return f'RateLimited(msg="{self.message}", code="{self.error_code}")'
-
-
-class RetryLimitExceeded(Exception):
-    pass
+    def __repr__(self):
+        return f'RateLimitError(message="{self.message}", code="{HTTPStatus.TOO_MANY_REQUESTS}", "x-rate-limit-reset={self.delay}")'
 
 
-def retry(exc: Tuple[Type[Exception], ...], tries: int =3) -> Callable:
+def retry(tries: int) -> Callable:
     """
-    A general request retry decorator with optional time delay.
+    A request retry decorator.
 
     Args:
         exc: exceptions to catch and retry on.
         tries: number of times to retry the wrapped function call. When `0`, retries indefinitely.
-
-    Raises:
-        A RetryLimitExceeded exception in the event that the call could not be completed after the
-        allotted number of attempts.
 
     Returns:
         Either the result of a successful function call (be it via retrying or not).
@@ -55,7 +47,7 @@ def retry(exc: Tuple[Type[Exception], ...], tries: int =3) -> Callable:
 
     def _f(f: Callable) -> Callable:
         @wraps(f)
-        def new_f(*args: Any, **kwargs: Any) -> Any:
+        def new_f(*args: Any, **kwargs: Any) -> Optional[Dict]:
             res: Any = None
 
             def call() -> bool:
@@ -63,10 +55,12 @@ def retry(exc: Tuple[Type[Exception], ...], tries: int =3) -> Callable:
                 try:
                     res = f(*args, **kwargs)
                     return True
-                except exc as msg:
-                    logging.info(f'Retrying: {msg} ~ {res}')
-                    print(msg)
-                    sleep(delay)
+                except RateLimitedError as msg:
+                    logging.error(msg)
+                    sleep(msg.delay)
+                    return False
+                except URLError as msg:
+                    logging.error(msg)
                     return False
 
             if tries > 0:
@@ -74,9 +68,7 @@ def retry(exc: Tuple[Type[Exception], ...], tries: int =3) -> Callable:
                     if call():
                         return res
                 else:
-                    raise RetryLimitExceeded(
-                        f'Exceeded max of {tries} tries. Raise the delay limit of {delay} or number of tries'
-                    )
+                    return
             else:
                 while not call():
                     pass
@@ -126,7 +118,7 @@ class API:
         )
         self._header = self._sender.request_header
 
-    @retry((URLError, RateLimitedError), tries=3)
+    @retry(tries=3)
     def _get(self, url: str) -> Optional[Dict]:
         """
         GET request on a TS API endpoint using Hawk Auth.
@@ -151,10 +143,11 @@ class API:
             return response.json()
         except json.JSONDecodeError:
             if response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
-                raise RateLimitedError(message=)
-            raise URLError(
-                f'Did not get valid JSON in response: {response.text if response.text else response.reason} ~ {response.status_code}'
-            )
+                raise RateLimitedError(delay=float(response.headers['x-rate-limit-reset']) / 1_000)
+            else:
+                raise URLError(
+                    f'Did not get valid JSON in response: {response.text if response.text else response.reason} ~ {response.status_code}'
+                )
 
     def get_rulesets(self) -> Dict:
         """
@@ -249,15 +242,15 @@ class API:
                 data.pop(field)
         return data
 
-    @retry(URLError, tries=3, delay=30.0)
+    @retry(tries=3)
     def _put(self) -> Optional[Dict]:
         ...
 
-    @retry(URLError, tries=3, delay=30.0)
+    @retry(tries=3)
     def _delete(self) -> Optional[Dict]:
         ...
 
-    @retry(URLError, tries=3, delay=30.0)
+    @retry(tries=3)
     def _post(self) -> Optional[Dict]:
         ...
 

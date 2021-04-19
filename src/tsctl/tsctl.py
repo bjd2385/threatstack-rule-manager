@@ -8,8 +8,9 @@ A Threat Stack rule manager for your terminal.
 from typing import Tuple, Dict
 
 from argparse import ArgumentParser, MetavarTypeHelpFormatter
-from state import State
-from utils import read_json, write_json
+from .state import State
+from .utils import read_json, write_json
+from . import __version__
 
 import logging
 import configparser
@@ -249,6 +250,11 @@ def main() -> None:
         help='Add xterm coloring to output. Only works on certain commands (--list).'
     )
 
+    parser.add_argument(
+        '-v', '--version', dest='version', action='store_true',
+        help='Print the version of \'tsctl\'.'
+    )
+
     options = vars(parser.parse_args())
 
     if options['list']:
@@ -272,7 +278,6 @@ def main() -> None:
     elif options['switch']:
         org_id = options['switch']
         workspace(state_directory, state_file, org_id, credentials)
-
-
-if __name__ == '__main__':
-    main()
+    elif options['version']:
+        # FIXME
+        print(f'tsctl v{__version__}')

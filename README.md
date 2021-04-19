@@ -1,25 +1,21 @@
-### Rule Management with `tsctl`
+tsctl
+=====
 
-`tsctl` allows you to perform the most common tasks in organization-level rule management, such as
+`tsctl` allows you to perform the most common tasks in Threat Stack organization-level rule management from your terminal, such as
 
 * creating rules and rulesets,
 * copying rules, both intra-organizational and extra, and
-* applying version control to local state.
+* applying version control to the local state path.
 
-In addition to the above, since the tool works out of a local directory (by default, 
-`~/.threatstack`), it allows for version control with `git`.
+```shell
 
-## FAQs
+```
 
-### How do I configure the tool?
+### Installation
 
-After installing `tsctl`, you should see one new directory in your home directory, `~/.threatstack`, that stores local state. You may optionally place a
-file `~/.threatstack.conf` in your home directory to configure the location and name of the local state directory. Other options for this file include
+### FAQs
 
-* `STATE_FILE_NAME`
-* `CONF_DIRECTORY` - 
-
-### What does the local state directory's structure look like?
+#### What does the local state directory's structure look like?
 
 My current view is that the state directory will be structured like ~
 ```text
@@ -36,7 +32,7 @@ My current view is that the state directory will be structured like ~
 ├── .gitignore
 └── .threatstack.state.json
 ```
-The `.threatstack.state.json` state file tracks local organization and cross-organization changes. This state file is flushed upon pushing local changes. You can view local, uncommitted changes by either typing `git status .` in the configured local state directory or via `tsctl diff`.
+The `.threatstack.state.json` state file tracks local organization and cross-organization changes. This state file is flushed upon pushing local changes. You can view local, uncommitted changes by either typing `git status .` in the configured local state directory or via `tsctl --plan`.
 
 ### What am I _not_ trying to solve?
 
@@ -53,3 +49,7 @@ The `.threatstack.state.json` state file tracks local organization and cross-org
 1. Per Ryan Plessner, need to check request headers in the `utils.retry` decorator so that if sleep time is not set, it will wait the appropriate amount of time on '429s.
 2. Add state modification, so you can add local state to the state file that will be pushed when the user runs `--push` and viewable with `--diff`.
 3. Add an `(MODIFIED)` string to the end of rules or rulesets under `--list` output that reside in the state file and will be pushed.
+
+### Releases
+
+Update `src/tsctl/__init__.__version__` to the next package version. This is referenced while calling `--version`, as well as during the build process with `setuptools`.
