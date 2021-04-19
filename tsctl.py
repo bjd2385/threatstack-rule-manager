@@ -135,9 +135,9 @@ def workspace(state_dir: str, state_file: str, org_id: str, credentials: Dict[st
     return new_state
 
 
-def diff(state_file: str) -> None:
+def plan(state_file: str) -> None:
     """
-    Output a nicely formatted diff of local state and the remote/platform state for the current workspace. This
+    Output a nicely formatted plan of local state and the remote/platform state for the current workspace. This
     function basically just allows you to view the local state file that tracks what is to be pushed, based on the
     last refresh's returns at the organizations' level.
 
@@ -235,7 +235,7 @@ def main() -> None:
     )
 
     group.add_argument(
-        '-s', '--diff', '--plan', dest='diff', action='store_true',
+        '-s', '--plan', dest='plan', action='store_true',
         help=f'View the state file, or the tracked difference between local state and remote state.'
     )
 
@@ -267,8 +267,8 @@ def main() -> None:
             exit(1)
         organization = State(state_directory, state_file, org_id, **credentials)
         organization.refresh()
-    elif options['diff']:
-        diff(state_file)
+    elif options['plan']:
+        plan(state_file)
     elif options['switch']:
         org_id = options['switch']
         workspace(state_directory, state_file, org_id, credentials)
