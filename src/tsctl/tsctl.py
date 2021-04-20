@@ -16,7 +16,7 @@ import os
 import json
 
 
-def config_parse() -> Tuple[str, str, Dict[str, str]]:
+def config_parse() -> Tuple[bool, str, str, Dict[str, str]]:
     """
     Initialize the state directory in the user's home directory and parse config options.
 
@@ -47,10 +47,11 @@ def config_parse() -> Tuple[str, str, Dict[str, str]]:
     parser.read(conf)
 
     # Collect runtime options, such as laziness and log level.
+    lazy_evaluation = True
     if 'RUNTIME' in parser.sections():
-        default_section = parser['RUNTIME']
-        lazy_evaluation = default_section.get('LAZY_EVAL', fallback=True)
-        loglevel = default_section.get('LOGLEVEL', fallback='ERROR')
+        runtime_section = parser['RUNTIME']
+        lazy_evaluation = runtime_section.get('LAZY_EVAL', fallback='True') == 'True'
+        loglevel = runtime_section.get('LOGLEVEL', fallback='ERROR')
     else:
         print(f'Must define RUNTIME section in \'{conf}\'.')
         exit(1)
