@@ -116,7 +116,7 @@ class API:
         )
         self._header = self._sender.request_header
 
-    @retry(tries=3)
+    @retry(tries=5)
     def _get(self, url: str) -> Optional[Dict]:
         """
         GET request on a TS API endpoint using Hawk Auth.
@@ -242,7 +242,7 @@ class API:
                 data.pop(field)
         return data
 
-    @retry(tries=3)
+    @retry(tries=5)
     def _put(self, url: str, data: Dict) -> Optional[Dict]:
         """
         PUT request on a TS API endpoint using Hawk Auth.
@@ -274,7 +274,7 @@ class API:
                     f'Did not get valid JSON in response: {response.text if response.text else response.reason} ~ {response.status_code}'
                 )
 
-    @retry(tries=3)
+    @retry(tries=5)
     def _delete(self, url: str) -> Optional[Dict]:
         """
         DELETE request on a TS API endpoint using Hawk Auth.
@@ -305,7 +305,7 @@ class API:
                     f'Did not get valid JSON in response: {response.text if response.text else response.reason} ~ {response.status_code}'
                 )
 
-    @retry(tries=3)
+    @retry(tries=5)
     def _post(self, url: str, data: Dict) -> Optional[Dict]:
         """
         POST request on a TS API endpoint using Hawk Auth.

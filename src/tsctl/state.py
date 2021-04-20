@@ -515,9 +515,6 @@ class State:
         """
         # Find a suitable (temporary, local) UUID for this rule; will be updated once the state file has been pushed.
         ruleset_dir = f'{self.organization_dir}{ruleset_id}/'
-
-        # FIXME: this should eventually be replaced for a better system of generating a new rule's (temporary) local
-        #  UUID until it can be pushed to the platform and assigned a real UUID.
         while True:
             rule_id_gen = str(uuid4()) + self._postfix
             if rule_id_gen not in os.listdir(ruleset_dir):
@@ -632,7 +629,7 @@ class State:
         Returns:
             A State object.
         """
-        # Locate the rule in this organization.
+        # Locate the rule in this organization (make sure it exists, that is).
         for ruleset in os.listdir(self.organization_dir):
             if rule_id in os.listdir(self.organization_dir + ruleset):
                 rule_dir = f'{self.organization_dir}{ruleset}/{rule_id}/'
@@ -641,15 +638,16 @@ class State:
             print(f'Rule ID \'{rule_id}\' not found in this organization.')
             return self
 
+        # Ensure the destination ruleset ID exists in this workspace.
         if ruleset_id not in os.listdir(self.organization_dir):
             print(f'Destination ruleset ID \'{ruleset_id}\' not found in this organization.')
             return self
-        else:
-            ruleset_dir = f'{self.organization_dir}{ruleset}/'
 
         rule_data = read_json(rule_dir + 'rule.json')
         tags_data = read_json(rule_dir + 'tags.json')
-        self._create_rule(self.org_id, ruleset_id, rule_data, tags_data)
+
+        # Create a new rule in the destination ruleset, now that we've confirmed everything exists.
+        self._create_rule(ruleset_id, rule_data, tags_data)
 
         return self
 
@@ -667,7 +665,7 @@ class State:
         Returns:
             A State object.
         """
-        # Locate the rule in this organization.
+        # Locate the rule in this organization (make sure it exists, that is).
         for ruleset in os.listdir(self.organization_dir):
             if rule_id in os.listdir(self.organization_dir + ruleset):
                 rule_dir = f'{self.organization_dir}{ruleset}/{rule_id}/'
@@ -676,33 +674,32 @@ class State:
             print(f'Rule ID \'{rule_id}\' not found in this organization.')
             return self
 
-        alt_org_dir = self.state_dir + org_id + '/'
-
-        if ruleset_id not in os.listdir(alt_org_dir):
-            print(f'Destination ruleset ID \'{ruleset_id}\' not found in organization \'{org_id}\'.')
+        # Ensure the destination ruleset ID exists in the destination organization.
+        if ruleset_id not in os.listdir(self.state_dir + org_id):
+            print(f'Destination ruleset ID \'{ruleset_id}\' not found in organization \'{org_id}\'. Please create this ruleset first.')
             return self
-        else:
-            ruleset_dir = f'{alt_org_dir}{ruleset}/'
 
         rule_data = read_json(rule_dir + 'rule.json')
         tags_data = read_json(rule_dir + 'tags.json')
-        self._create_rule(org_id, ruleset_id, rule_data, tags_data)
+
+        # Create a local copy of this rule in the destination organization.
+        alt_state = State(self.state_dir, self.state_file, org_id, self.user_id, self.api_key)
+        alt_state.create_rule(ruleset_id, rule_data, tags_data)
 
         return self
 
     @lazy
-    def copy_ruleset(self, ruleset_id: str, newname: Optional[str]) -> 'State':
+    def copy_ruleset(self, ruleset_id: str) -> 'State':
         """
         Copy an entire ruleset to a new one, intra-org.
 
         Args:
             ruleset_id: the ruleset to copy.
-            newname: optional name to give the new ruleset (by default, the "<current name> - COPY"). Rules are
-                already assigned unique IDs upon POST request remotely, so
 
         Returns:
             A State object.
         """
+
 
     @lazy
     def copy_ruleset_out(self, ruleset_id: str, org_id: str) -> 'State':

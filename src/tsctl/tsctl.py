@@ -182,30 +182,43 @@ def main() -> None:
     #  or parser before discerning that more than one flag in the mutually exclusive group was defined.
     group = parser.add_mutually_exclusive_group(required=True)
 
-    group.add_argument(
-        '-l', '--list', dest='list', action='store_true',
-        help='List rulesets and (view) rules'
-    )
+    # Rules
 
     group.add_argument(
-        '-a', '--create-ruleset', dest='create_ruleset', nargs=1, type=str, metavar=('FILE',),
-        help='(lazy) Create a new ruleset in the configured org.'
-    )
-
-    # TODO: update this to accept redirection (say, if you modify a rule with jq and then pipe it into the program)
-    group.add_argument(
-        '-c', '--create-rule', dest='create', nargs=2, type=str, metavar=('RULESET', 'FILE'),
+        '-c', '--create-rule', dest='create_rule', nargs=2, type=str, metavar=('RULESET', 'FILE'),
         help='(lazy) Create a new rule from a JSON file.'
     )
 
     group.add_argument(
-        '-n', '--copy-rule', dest='copy', nargs=2, type=str, metavar=('RULE', 'RULESET'),
+        '-n', '--copy-rule', dest='copy_rule', nargs=2, type=str, metavar=('RULE', 'RULESET'),
         help='(lazy) Copy a rule from one ruleset to another (in the same organization).'
     )
 
     group.add_argument(
-        '-N', '--copy-rule-out', dest='copy_out', nargs=3, type=str, metavar=('RULE', 'RULESET', 'ORGID'),
+        '-N', '--copy-rule-out', dest='copy_rule_out', nargs=3, type=str, metavar=('RULE', 'RULESET', 'ORGID'),
         help='(lazy) Copy a rule from the current workspace to a ruleset in a different organization.'
+    )
+
+    group.add_argument(
+        '-u', '--update-rule', dest='update_rule', nargs=3, type=str, metavar=('RULESET', 'RULE', 'FILE'),
+        help='(lazy) Update a rule in a ruleset with a rule in a JSON file.'
+    )
+
+    group.add_argument(
+        '-t', '--update-tags', dest='update_rule_tags', nargs=2, type=str, metavar=('RULE', 'FILE'),
+        help='(lazy) Create or update tags on a rule.'
+    )
+
+    group.add_argument(
+        '-d', '--delete-rule', dest='delete_rule', nargs=1, type=str, metavar=('RULE',),
+        help='(lazy) Delete a rule from the current workspace.'
+    )
+
+    # Rulesets
+
+    group.add_argument(
+        '-a', '--create-ruleset', dest='create_ruleset', nargs=1, type=str, metavar=('FILE',),
+        help='(lazy) Create a new ruleset in the configured org.'
     )
 
     group.add_argument(
@@ -214,13 +227,8 @@ def main() -> None:
     )
 
     group.add_argument(
-        '-M', '--copy-ruleset-out', dest='copy_ruleset', nargs=2, type=str, metavar=('RULESET', 'ORGID'),
+        '-M', '--copy-ruleset-out', dest='copy_ruleset_out', nargs=2, type=str, metavar=('RULESET', 'ORGID'),
         help='(lazy) Copy an entire ruleset in the current workspace to a different organization.'
-    )
-
-    group.add_argument(
-        '-u', '--update-rule', dest='update', nargs=3, type=str, metavar=('RULESET', 'RULE', 'FILE'),
-        help='(lazy) Update a rule in a ruleset with a rule in a JSON file.'
     )
 
     group.add_argument(
@@ -229,18 +237,15 @@ def main() -> None:
     )
 
     group.add_argument(
-        '-d', '--delete-rule', dest='delete_rule', nargs=1, type=str, metavar=('RULE',),
-        help='(lazy) Delete a rule from the current workspace.'
-    )
-
-    group.add_argument(
         '-D', '--delete-ruleset', dest='delete_ruleset', nargs=1, type=str, metavar=('RULESET',),
         help='(lazy) Delete a ruleset from the current workspace.'
     )
 
+    # Workspace options and optional options.
+
     group.add_argument(
-        '-t', '--update-tags', dest='create_tag', nargs=2, type=str, metavar=('RULE', 'FILE'),
-        help='(lazy) Create or update tags on a rule.'
+        '-l', '--list', dest='list', action='store_true',
+        help='List rulesets and (view) rules'
     )
 
     group.add_argument(
@@ -249,12 +254,17 @@ def main() -> None:
     )
 
     group.add_argument(
-        '-s', '--push', dest='push', action='store_true',
-        help='Push local state to remote state (across all organizations).'
+        '--push', dest='push', action='store_true',
+        help='Push a workspace\'s state to remote state (the platform).'
     )
 
     group.add_argument(
-        '-p', '--plan', dest='plan', action='store_true',
+        '--push-all', dest='push_all', action='store_true',
+        help='Push all modified organization\'s to remote state (the platform).'
+    )
+
+    group.add_argument(
+        '--plan', dest='plan', action='store_true',
         help=f'View the state file, or the tracked difference between local state and remote state.'
     )
 
@@ -275,14 +285,54 @@ def main() -> None:
 
     options = vars(parser.parse_args())
 
-    if options['list']:
-        state = read_json(state_file)
-        org_id = state['workspace']
-        if not org_id:
-            print('Must set a workspace/organization ID (--workspace) to list rulesets and rules.')
-            exit(1)
-        organization = State(state_directory, state_file, org_id, **credentials)
+    state = read_json(state_file)
+    org_id = state['workspace']
+    if not org_id:
+        print('Must set a workspace/organization ID to begin.')
+        exit(1)
+
+    organization = State(state_directory, state_file, org_id, **credentials)
+
+    # Take action on user-selection.
+
+    if options['create_rule']:
+        # FIXME: add a method to create a rule here
+        organization.create_rule()
+
+    elif options['copy_rule']:
+        ...
+
+    elif options['copy_rule_out']:
+        ...
+
+    elif options['update_rule']:
+        ...
+
+    elif options['update_tags']:
+        ...
+
+    elif options['delete_rule']:
+        ...
+
+    elif options['create_ruleset']:
+        # FIXME: add a method to create a ruleset here?
+        organization.create_ruleset()
+
+    elif options['copy_ruleset']:
+        ...
+
+    elif options['copy_ruleset_out']:
+        ...
+
+    elif options['update_ruleset']:
+        ...
+
+    elif options['delete_ruleset']:
+        ...
+
+    elif options['list']:
         organization.lst(colorful=options['color'])
+
     elif options['refresh']:
         state = read_json(state_file)
         org_id = state['workspace']
@@ -291,10 +341,19 @@ def main() -> None:
             exit(1)
         organization = State(state_directory, state_file, org_id, **credentials)
         organization.refresh()
+
+    elif options['push']:
+        ...
+
+    elif options['push_all']:
+        ...
+
     elif options['plan']:
         plan(state_file)
+
     elif options['switch']:
         org_id = options['switch']
         workspace(state_directory, state_file, org_id, credentials)
+
     elif options['version']:
         print(f'tsctl v{__version__}')
