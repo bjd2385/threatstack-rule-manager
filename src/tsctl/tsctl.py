@@ -279,21 +279,28 @@ def main() -> None:
     )
 
     group.add_argument(
-        '-v', '--version', dest='version', action='store_true',
+        '--version', dest='version', action='store_true',
         help='Print the version of \'tsctl\'.'
     )
 
     options = vars(parser.parse_args())
 
+    if options['version']:
+        print(f'tsctl v{__version__}')
+        return
+
     state = read_json(state_file)
+
+    if options['plan']:
+        plan(state_file)
+        return
+
     org_id = state['workspace']
     if not org_id:
         print('Must set a workspace/organization ID to begin.')
         exit(1)
 
     organization = State(state_directory, state_file, org_id, **credentials)
-
-    # Take action on user-selection.
 
     if options['create_rule']:
         # FIXME: add a method to create a rule here
@@ -308,7 +315,7 @@ def main() -> None:
     elif options['update_rule']:
         ...
 
-    elif options['update_tags']:
+    elif options['update_rule_tags']:
         ...
 
     elif options['delete_rule']:
@@ -348,12 +355,6 @@ def main() -> None:
     elif options['push_all']:
         ...
 
-    elif options['plan']:
-        plan(state_file)
-
     elif options['switch']:
         org_id = options['switch']
         workspace(state_directory, state_file, org_id, credentials)
-
-    elif options['version']:
-        print(f'tsctl v{__version__}')
