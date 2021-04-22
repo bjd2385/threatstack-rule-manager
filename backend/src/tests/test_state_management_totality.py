@@ -7,9 +7,7 @@ state data is in the expected schema.
 
 import unittest
 
-from tsctl.state import State
 from tsctl.tsctl import config_parse
-from tsctl.utils import read_json
 from random import choice
 from string import ascii_lowercase, digits
 
