@@ -1,2 +1,2 @@
-Rule Manager for Threat Stack
+Threat Stack Rule Manager
 =============================

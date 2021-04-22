@@ -7,30 +7,33 @@ tsctl
 * copying rules, both intra-organizationally and extra, and
 * applying version control to the local state path (by default, `~/.threatstack`) to track rule development and history on the platform as you and your organization learn and develop security practices.
 
-```shell
-tsctl -h
-usage: tsctl [-h] [--create-rule RULESET] [--copy-rule RULE RULESET] [--copy-rule-out RULE RULESET ORGID] [--update-rule RULE] [--update-tags RULE] [--delete-rule RULE] [--create-ruleset] [--copy-ruleset RULESET] [--copy-ruleset-out RULESET ORGID]
-             [--update-ruleset RULESET] [--delete-ruleset RULESET] [-l] [-r] [--push] [--push-all] [--plan] [-w ORGID] [--colorful] [--version]
+```text
+$ tsctl -h
+usage: tsctl [-h] [--create-rule RULESET FILE] [--copy-rule RULE RULESET] [--copy-rule-out RULE RULESET ORGID] [--update-rule RULE FILE] [--update-tags RULE FILE] [--delete-rule RULE] [--create-ruleset FILE] [--copy-ruleset RULESET] [--copy-ruleset-out RULESET ORGID]
+             [--update-ruleset RULESET FILE] [--delete-ruleset RULESET] [-l] [-r] [--push] [--push-all] [--plan] [-w ORGID] [--colorful] [--version]
 
 A Threat Stack rule manager for your terminal.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --create-rule RULESET
+  --create-rule RULESET FILE
                         (lazy) Create a new rule from a JSON file.
   --copy-rule RULE RULESET
                         (lazy) Copy a rule from one ruleset to another (in the same organization).
   --copy-rule-out RULE RULESET ORGID
                         (lazy) Copy a rule from the current workspace to a ruleset in a different organization.
-  --update-rule RULE    (lazy) Update a rule in a ruleset with a rule in a JSON file.
-  --update-tags RULE    (lazy) Update the tags on a rule.
+  --update-rule RULE FILE
+                        (lazy) Update a rule in a ruleset with a rule in a JSON file.
+  --update-tags RULE FILE
+                        (lazy) Update the tags on a rule.
   --delete-rule RULE    (lazy) Delete a rule from the current workspace.
-  --create-ruleset      (lazy) Create a new ruleset in the configured org.
+  --create-ruleset FILE
+                        (lazy) Create a new ruleset.
   --copy-ruleset RULESET
                         (lazy) Copy an entire ruleset with a new name to the same workspace.
   --copy-ruleset-out RULESET ORGID
                         (lazy) Copy an entire ruleset in the current workspace to a different organization.
-  --update-ruleset RULESET
+  --update-ruleset RULESET FILE
                         (lazy) Update a ruleset from a JSON file.
   --delete-ruleset RULESET
                         (lazy) Delete a ruleset from the current workspace.
