@@ -180,7 +180,7 @@ class API:
                     f'Did not get valid JSON in response: {response.text if response.text else response.reason} ~ {response.status_code}'
                 )
 
-    def get_rulesets(self) -> Dict:
+    def get_rulesets(self) -> Optional[Dict]:
         """
         Return a list of rulesets and rules thereunder. This isn't meant to return an object in a POSTable format,
         unlike other methods.
@@ -190,11 +190,11 @@ class API:
         Returns:
             A dictionary of rulesets and their rules.
         """
-        data = self._get('https://api.threatstack.com/v2/rulesets')
+        response = self._get('https://api.threatstack.com/v2/rulesets')
 
-        return data
+        return response
 
-    def get_ruleset(self, ruleset_id: str) -> Dict:
+    def get_ruleset(self, ruleset_id: str) -> Optional[Dict]:
         """
         Return a particular ruleset and rule IDs thereunder.
 
@@ -206,13 +206,13 @@ class API:
         Returns:
             The ruleset and rule IDs thereunder.
         """
-        data = self._get(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}')
-        for field in ('updatedAt', 'createdAt'):
-            if field in data:
-                data.pop(field)
-        return data
+        if response := self._get(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}'):
+            for field in ('updatedAt', 'createdAt'):
+                if field in response:
+                    response.pop(field)
+        return response
 
-    def get_ruleset_rules(self, ruleset_id: str) -> Dict:
+    def get_ruleset_rules(self, ruleset_id: str) -> Optional[Dict]:
         """
         List out all rules under a ruleset verbosely.
 
@@ -224,19 +224,18 @@ class API:
         Returns:
             The ruleset and a verbose listing of the rules underneath it.
         """
-        data = self._get(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules')
+        if response := self._get(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules'):
+            # Filter rules' fields.
+            for i, rule in enumerate(response['rules']):
+                # Remove non-POSTable fields by
+                # https://apidocs.threatstack.com/v2/rule-sets-and-rules/create-rule-endpoint
+                for field in ('rulesetId', 'updatedAt', 'createdAt'):
+                    if field in response['rules'][i]:
+                        response['rules'][i].pop(field)
 
-        # Filter rules' fields.
-        for i, rule in enumerate(data['rules']):
-            # Remove non-POSTable fields by
-            # https://apidocs.threatstack.com/v2/rule-sets-and-rules/create-rule-endpoint
-            for field in ('rulesetId', 'updatedAt', 'createdAt'):
-                if field in data['rules'][i]:
-                    data['rules'][i].pop(field)
+        return response
 
-        return data
-
-    def get_rule(self, ruleset_id: str, rule_id: str) -> Dict:
+    def get_rule(self, ruleset_id: str, rule_id: str) -> Optional[Dict]:
         """
         Get a particular rule from a ruleset.
 
@@ -249,13 +248,14 @@ class API:
         Returns:
             The rule data.
         """
-        data = self._get(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules/{rule_id}')
-        for field in ('rulesetId', 'updatedAt', 'createdAt'):
-            if field in data:
-                data.pop(field)
-        return data
+        if response := self._get(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules/{rule_id}'):
+            for field in ('rulesetId', 'updatedAt', 'createdAt'):
+                if field in response:
+                    response.pop(field)
 
-    def get_rule_tags(self, rule_id) -> Dict:
+        return response
+
+    def get_rule_tags(self, rule_id) -> Optional[Dict]:
         """
         Get tags on a rule.
 
@@ -267,11 +267,12 @@ class API:
         Returns:
             The tag data.
         """
-        data = self._get(f'https://api.threatstack.com/v2/rules/{rule_id}/tags')
-        for field in ('errors',):
-            if field in data:
-                data.pop(field)
-        return data
+        if response := self._get(f'https://api.threatstack.com/v2/rules/{rule_id}/tags'):
+            for field in ('errors',):
+                if field in response:
+                    response.pop(field)
+
+        return response
 
     @retry(tries=5)
     def _put(self, url: str, data: Dict) -> Optional[Dict]:
@@ -305,6 +306,49 @@ class API:
                     f'Did not get valid JSON in response: {response.text if response.text else response.reason} ~ {response.status_code}'
                 )
 
+    def put_ruleset(self, ruleset_id: str, data: Dict) -> Optional[Dict]:
+        """
+        Update a ruleset that already exists in the platform.
+
+        https://apidocs.threatstack.com/v2/rule-sets-and-rules/update-rule-set-endpoint
+
+        Args:
+            ruleset_id: ruleset ID to update in the remote platform.
+            data: ruleset data to send and use to overwrite the ruleset in the remote platform.
+
+        Returns:
+            The response from the platform when the request is successful, nothing otherwise.
+        """
+        if response := self._put(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}', data):
+            for field in ('createdAt', 'updatedAt'):
+                if field in response:
+                    data.pop(field)
+
+        return response
+
+    def put_rule(self, ruleset_id: str, rule_id: str, data: Dict) -> Optional[Dict]:
+        """
+        Update a rule that already exists in the platform.
+
+        https://apidocs.threatstack.com/v2/rule-sets-and-rules/update-rule-endpoint
+
+        Args:
+            ruleset_id: ruleset ID within which to update this rule in the remote platform.
+            rule_id: rule ID to update in the remote platform.
+            data: rule data to send and use to overwrite the rule in the remote platform.
+
+        Returns:
+            The response from the platform when the request is successful, nothing otherwise.
+        """
+        if response := self._put(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules/{rule_id}', data):
+            for field in ('createdAt', 'updatedAt', 'rulesetId'):
+                if field in response:
+                    response.pop(field)
+
+        return response
+
+    # I am purposely skipping `put_suppressions`, since they can be updated via put_rule.
+
     @retry(tries=5)
     def _delete(self, url: str) -> Optional[Dict]:
         """
@@ -335,6 +379,39 @@ class API:
                 raise URLError(
                     f'Did not get valid JSON in response: {response.text if response.text else response.reason} ~ {response.status_code}'
                 )
+
+    def delete_rule(self, ruleset_id: str, rule_id: str) -> Optional[Dict]:
+        """
+        Delete a rule from the platform.
+
+        https://apidocs.threatstack.com/v2/rule-sets-and-rules/delete-rule-endpoint
+
+        Args:
+            ruleset_id: ruleset ID within which this rule resides.
+            rule_id: rule ID we wish to delete.
+
+        Returns:
+            An empty dict if the rule deletion was successful.
+        """
+        response = self._delete(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules/{rule_id}')
+
+        return response
+
+    def delete_ruleset(self, ruleset_id: str) -> Optional[Dict]:
+        """
+        Delete a ruleset from the platform.
+
+        https://apidocs.threatstack.com/v2/rule-sets-and-rules/delete-ruleset
+
+        Args:
+            ruleset_id: ruleset ID to delete.
+
+        Returns:
+            A dict containing a list of server_ids that were assigned this ruleset.
+        """
+        response = self._delete(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}')
+
+        return response
 
     @retry(tries=5)
     def _post(self, url: str, data: Dict) -> Optional[Dict]:
@@ -368,3 +445,62 @@ class API:
                 raise URLError(
                     f'Did not get valid JSON in response: {response.text if response.text else response.reason} ~ {response.status_code}'
                 )
+
+    def post_rule(self, ruleset_id: str, data: Dict) -> Optional[Dict]:
+        """
+        Create a new rule in the platform based on the data provided.
+
+        https://apidocs.threatstack.com/v2/rule-sets-and-rules/create-rule-endpoint
+
+        Args:
+            ruleset_id: ruleset ID within which to create this new rule.
+            data: rule data to submit to the platform.
+
+        Returns:
+            The newly-generated rule's JSON, including its platform-assigned ID that should be propagated back through
+            local directory structure (through renaming the directories).
+        """
+        response = self._post(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules', data)
+
+        for field in ('createdAt', 'updatedAt', 'rulesetId'):
+            if field in response:
+                response.pop(field)
+
+        return response
+
+    def post_ruleset(self, data: Dict) -> Optional[Dict]:
+        """
+        Create a new ruleset in the platform based on the data provided.
+
+        https://apidocs.threatstack.com/v2/rule-sets-and-rules/create-ruleset
+
+        Args:
+            data: ruleset data to submit to the platform.
+
+        Returns:
+            The newly-generated rulesets JSON, including its platform-assigned ID that should be propagated back
+            through local directory structure (through renaming the directories).
+        """
+        if response := self._post(f'https://api.threatstack.com/v2/rulesets', data):
+            for field in ('createdAt', 'updatedAt'):
+                if field in response:
+                    response.pop(field)
+
+        return response
+
+    def post_tags(self, rule_id: str, data: Dict) -> Optional[Dict]:
+        """
+        Create or update tags on a rule.
+
+        https://apidocs.threatstack.com/v2/rule-sets-and-rules/edit-tags-for-a-rule
+
+        Args:
+            rule_id: rule ID on which to update the tags.https://api.threatstack.com/v2/rules/{ruleId}/tags
+            data: tag data to submit to the platform.
+
+        Returns:
+            The same object as was submitted, if the request was successful.
+        """
+        response = self._post(f'https://api.threatstack.com/v2/rules/{rule_id}/tags', data)
+
+        return response

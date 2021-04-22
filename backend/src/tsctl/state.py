@@ -406,7 +406,7 @@ class State(metaclass=_MetaState):
                 state = self._state_add_ruleset(ruleset_id, action='false', state=state)
                 state = self._state_add_rule(ruleset_id, rule_id, endpoint, state)
         else:
-            # Add the blank organization, then the ruleset and rule thereunder.
+            # Add the blank organization, then the ruleset and rule thereunder, recursively.
             state = self._state_add_organization(state)
             state = self._state_add_ruleset(ruleset_id, action='false', state=state)
             state = self._state_add_rule(ruleset_id, rule_id, endpoint, state)
