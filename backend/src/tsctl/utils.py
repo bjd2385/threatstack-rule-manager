@@ -1,62 +1,7 @@
-from typing import Type, Any, Dict, Generator, List
+from typing import Type, Any, Dict
 
 import logging
 import json
-import re
-
-from contextlib import contextmanager
-from subprocess import PIPE, Popen
-from hashlib import md5
-
-
-newlines = re.compile(r'\n+')
-
-
-def _md5_file_hash(path: str) -> str:
-    """
-    Get the md5 hash of a file.
-
-    Args:
-        path: path to the file to hash.
-
-    Returns:
-        A hash of the file.
-    """
-    with open(path, 'r') as f:
-        return md5(f.read().encode()).hexdigest()
-
-
-def edit_file(exe: str, path: str) -> bool:
-    """
-    Method that calls subprocess to allow a user to edit a file.
-
-    Returns:
-        True if the user actually modified the file, False otherwise.
-    """
-    before_hash = _md5_file_hash(path)
-    get_io(f'{exe} {path}')
-    return _md5_file_hash(path) == before_hash
-
-
-@contextmanager
-def get_io(command: str) -> Generator[List[str], None, None]:
-    """
-    Get results from terminal commands as lists of lines of text.
-    """
-    with Popen(command, shell=True, stdout=PIPE, stderr=PIPE) as proc:
-        stdout, stderr = proc.communicate()
-
-    if stderr:
-        raise ValueError('Command exited with errors: {}'.format(stderr))
-
-    if stdout:
-        stdout = re.split(newlines, stdout.decode())
-
-        # For some reason, `shell=True` likes to yield an empty string.
-        if stdout[-1] == '':
-            stdout = stdout[:-1]
-
-    yield stdout
 
 
 def read_json(file: str) -> Dict:
@@ -96,7 +41,7 @@ class Color:
         self.color = color
         self.string = string
 
-    ## Colors
+    # Colors
 
     @classmethod
     def red(cls: Type['Color']) -> 'Color':
@@ -122,7 +67,7 @@ class Color:
     def normal(cls: Type['Color']) -> 'Color':
         return cls('\033[0m')
 
-    ## Effects
+    # Effects
 
     @classmethod
     def bold(cls: Type['Color']) -> 'Color':

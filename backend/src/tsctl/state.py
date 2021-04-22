@@ -1,48 +1,67 @@
 """
-The State manager class provides a common API between local filesystem state changes (lazy) and remote, Threat Stack
-API-supported app rule state changes.
+Provide a high level interface that respects lazy, local-only edits, and manages a state file as the user makes
+changes. State file should maintain a list of minimal change to update remote state on `push`, hence minimal request
+count.
 """
 
-from typing import Dict, Optional, Callable, Any, Tuple, Literal
+from typing import Dict, Optional, Callable, Any, Literal
 
 import logging
 import os
 import shutil
+import tsctl
 
 from functools import wraps
 from urllib.error import URLError
 from uuid import uuid4
 from .api import API
-from .utils import read_json, write_json, Color, edit_file
+from .utils import read_json, write_json, Color
 
 
 RuleStatus = Literal['rule', 'tags', 'both', 'del']
 RulesetStatus = Literal['true', 'false', 'del']
 
 
-def lazy(f: Callable, metavars: Optional[Tuple[str, ...]] =None) -> Callable:
+def lazy(f: Callable[..., 'State']) -> Callable:
     """
-    Apply a `push` from local state onto the remote state if the `LAZY_EVAL` environment variable is set to `true`.
+    Apply a `push` from local state onto the remote state if the `LAZY_EVAL` environment variable was set to `true`.
 
     Args:
-        f: method on State to apply a push. Again, the push is localized as far as the arguments on `f` indicate.
-        metavars: optional list of different arguments to look for on the wrapped function.
+        f: method on State to apply a push.
 
     Returns:
-        A tuple of `f`'s regular return with the result of the push.
+        f's normal return, a State instance, if lazy; otherwise, nothing.
     """
     @wraps(f)
-    def _new_f(*args: Any, **kwargs: Any) -> Tuple[Dict, 'State']:
-        ...
+    def _new_f(*args: Any, **kwargs: Any) -> Optional['State']:
+        if tsctl.tsctl.lazy_eval:
+            return f(*args, **kwargs)
+        else:
+            f(*args, **kwargs).push()
+            return
 
     return _new_f
 
 
-class State:
+class _MetaState(type):
+    """
+    Ensure created State instances are unique at the org. level. Slightly different than a Singleton. If a user tries
+    to create a duplicate State instance by org. ID, return the existing one.
+    """
+    _instances: Dict[str, 'State'] = dict()
+
+    def __call__(cls, *args, **kwargs) -> 'State':
+        org_id = kwargs['org_id']
+        if org_id not in cls._instances:
+            cls._instances[org_id] = super(_MetaState, cls).__call__(*args, **kwargs)
+        return cls._instances[org_id]
+
+
+class State(metaclass=_MetaState):
     """
     Manage local and remote organizational state through OS-level calls and API calls.
     """
-    def __init__(self, state_dir: str, state_file: str, org_id: str, user_id: str, api_key: str) -> None:
+    def __init__(self, state_dir: str, state_file: str, user_id: str, api_key: str, postfix: str ='-localonly', *, org_id: str) -> None:
         self.state_dir = state_dir
         self.state_file = state_file
         self.user_id = user_id
@@ -58,8 +77,8 @@ class State:
         self.organization_dir = state_dir + org_id + '/'
 
         # Postfix is set on local-only changes and tracked during pushes to the remote platform so that local
-        # directories can be refreshed to their proper assigned UUID.
-        self._postfix = '-localonly'
+        # directories can be refreshed to their properly-assigned UUID.
+        self._postfix = postfix
 
     @property
     def org_id(self) -> str:
@@ -91,21 +110,45 @@ class State:
         local state file by creating an API interface to the remote organization, then POSTing or PUTting local
         tracked changed rulesets and rules.
 
-        Returns:
-            True if all API calls were successful.
-        """
+        Args:
+            state: if the state file's already opened, you can optionally pass it into this method. Otherwise, it
+                reads a fresh copy from disk.
 
+        Returns:
+            Nothing.
+        """
+        state = read_json(self.state_file)
+
+        if self.org_id in state['organizations']:
+            api = API()
+            # Iterate over rulesets first, since they can be changed.
+            for ruleset_id in state['organizations'][self.org_id]:
+                if ruleset_id.endswith(self._postfix):
+                    # This ruleset doesn't exist yet. Save this local ID, we'll modify the local filesystem to reflect
+                    # remote changes to these UUIDs.
+                    ...
+                elif state['organizations'][self.org_id][ruleset_id]['modified'] == 'true':
+                    # PUT update this ruleset.
+                    ...
+                elif state['organizations'][self.org_id][ruleset_id]['modified'] == 'del':
+                    # DELETE this ruleset.
+                    ...
+
+                # Remove this ruleset from the state. Method
+                self._state_delete_ruleset(ruleset_id, state=state)
+
+            for ruleset_id in state['organizations'][self.org_id]:
+                for rule_id in state['organizations'][self.org_id][ruleset_id]['rules']:
+                    ...
+        else:
+            # Nothing to do.
+            return
 
     def refresh(self) -> None:
         """
-        Effectively `push`'s opposite - instead of pushing local state onto the remote platform state, pull all of
+        Effectively `push`'s opposite - instead of pushing local state onto the remote platform stanewname: strte, pull all of
         the remote organization state and copy it over the local organization-level state (effectively overwriting
         the local organization's state). Deletes prior local state and clears state file of organization change.
-
-        Args:
-            org_id: optionally specify an organization ID to refresh upon. NOTE: Should only be specified in the
-                case that you're copying a rule or ruleset from one organization to another and that destination
-                organization does not exist in local state.
 
         Returns:
             Nothing.
@@ -195,7 +238,7 @@ class State:
             state = read_json(self.state_file)
 
         if self.org_id not in state['organizations']:
-            state['orgnizations'][self.org_id] = dict()
+            state['organizations'][self.org_id] = dict()
 
         if write_state:
             write_json(self.state_file, state)
@@ -220,7 +263,7 @@ class State:
             state = read_json(self.state_file)
 
         if org_id in state['organizations']:
-            state['orgnizations'].pop(org_id)
+            state['organizations'].pop(org_id)
 
         if write_state:
             write_json(self.state_file, state)
@@ -409,6 +452,26 @@ class State:
 
     # Local filesystem structure/management API.
 
+    def _locate_rule(self, rule_id: str) -> Optional[str]:
+        """
+        Since rule IDs are unique per rule (platform-wide, actually), we can return the complete path to a rule by
+        ID in the filesystem, if it exists.
+
+        Args:
+            rule_id: ID of the rule to obtain the path of.
+
+        Returns:
+            The path if the rule's found, otherwise, nothing.
+        """
+        for ruleset in os.listdir(self.organization_dir):
+            if rule_id in os.listdir(self.organization_dir + ruleset):
+                rule_dir = f'{self.organization_dir}{ruleset}/{rule_id}/'
+                break
+        else:
+            rule_dir = None
+
+        return rule_dir
+
     def _create_organization(self, org_id: str) -> Optional['State']:
         """
         Create a local organization directory if it doesn't already exist, in addition to calling a refresh on that
@@ -422,7 +485,7 @@ class State:
         """
         if not os.path.isdir(self.state_dir + org_id):
             os.mkdir(self.state_dir + org_id)
-            return State(self.state_dir, self.state_file, org_id, self.user_id, self.api_key).refresh()
+            return State(self.state_dir, self.state_file, self.user_id, self.api_key, org_id=org_id).refresh()
         else:
             return None
 
@@ -443,12 +506,12 @@ class State:
 
         return
 
-    def _create_ruleset(self, ruleset: Dict) -> None:
+    def _create_ruleset(self, ruleset_data: Dict) -> None:
         """
         Create a local ruleset directory if it doesn't already exist.
 
         Args:
-            ruleset: POSTable formatted ruleset data.
+            ruleset_data: POSTable formatted ruleset data.
 
         Returns:
             Nothing.
@@ -461,7 +524,7 @@ class State:
 
         ruleset_dir = f'{self.organization_dir}{ruleset_id_gen}/'
         os.mkdir(ruleset_dir)
-        write_json(ruleset_dir + 'ruleset.json', ruleset)
+        write_json(ruleset_dir + 'ruleset.json', ruleset_data)
 
         # Update the state file to track these changes.
         self._state_add_ruleset(ruleset_id_gen, action='true')
@@ -526,6 +589,7 @@ class State:
                 break
 
         rule_dir = f'{ruleset_dir}{rule_id_gen}/'
+        os.mkdir(rule_dir)
 
         write_json(rule_dir + 'rule.json', rule_data)
         write_json(rule_dir + 'tags.json', tags_data)
@@ -571,6 +635,9 @@ class State:
         List the ruleset and rule hierarchy under an organization, based on local state. This is meant to be
         a more human-readable view of the organization and organization's rules.
 
+        Args:
+            colorful: if True, print the output with xterm colors via utils.Color.
+
         Returns:
             Nothing.
         """
@@ -593,34 +660,48 @@ class State:
                 else:
                     print(f'({rule_id})')
 
-    ## Remote state management API.
+    # Remote state management API.
 
     @lazy
-    def create_ruleset(self, ruleset: Dict) -> 'State':
+    def create_ruleset(self, ruleset_data: str) -> 'State':
         """
         Create a new ruleset in the current workspace.
 
         Args:
-            ruleset: ruleset data to commit to local directory. Must be in POSTable format.
+            ruleset_data: ruleset data file with which to create the new ruleset. Must be in POSTable format.
 
         Returns:
             A State object.
         """
-        self._create_ruleset(ruleset)
+        data = read_json(ruleset_data)
+
+        self._create_ruleset(
+            ruleset_data=data
+        )
+
+        return self
 
     @lazy
-    def create_rule(self) -> 'State':
+    def create_rule(self, ruleset_id: str, rule_data: str) -> 'State':
         """
         Create a new rule from a JSON file in the current workspace.
 
         Args:
             ruleset_id: ruleset under which to create the new rule.
-            rule_data: rule data from which to create the new rule. Must conform the the POST rule schema.
-            tags_data: tags data to commit to this rule, if any. If None, the POST request is skipped.
+            rule_data: rule data file from which to create the new rule. Must conform to the POST rule schema.
 
         Returns:
             A State object.
         """
+        data = read_json(rule_data)
+
+        self._create_rule(
+            ruleset_id=ruleset_id,
+            rule_data=data,
+            tags_data=dict()
+        )
+
+        return self
 
     @lazy
     def copy_rule(self, rule_id: str, ruleset_id: str) -> 'State':
@@ -635,12 +716,8 @@ class State:
             A State object.
         """
         # Locate the rule in this organization (make sure it exists, that is).
-        for ruleset in os.listdir(self.organization_dir):
-            if rule_id in os.listdir(self.organization_dir + ruleset):
-                rule_dir = f'{self.organization_dir}{ruleset}/{rule_id}/'
-                break
-        else:
-            print(f'Rule ID \'{rule_id}\' not found in this organization.')
+        if not (rule_dir := self._locate_rule(rule_id)):
+            print(f'Rule ID \'{rule_id}\' not found in this organization. Please create before updating.')
             return self
 
         # Ensure the destination ruleset ID exists in this workspace.
@@ -670,13 +747,8 @@ class State:
         Returns:
             A State object.
         """
-        # Locate the rule in this organization (make sure it exists, that is).
-        for ruleset in os.listdir(self.organization_dir):
-            if rule_id in os.listdir(self.organization_dir + ruleset):
-                rule_dir = f'{self.organization_dir}{ruleset}/{rule_id}/'
-                break
-        else:
-            print(f'Rule ID \'{rule_id}\' not found in this organization.')
+        if not (rule_dir := self._locate_rule(rule_id)):
+            print(f'Rule ID \'{rule_id}\' not found in this organization. Please create before updating.')
             return self
 
         # Ensure the destination ruleset ID exists in the destination organization.
@@ -694,12 +766,13 @@ class State:
         return self
 
     @lazy
-    def copy_ruleset(self, ruleset_id: str) -> 'State':
+    def copy_ruleset(self, ruleset_id: str, postfix: str =' - COPY') -> 'State':
         """
         Copy an entire ruleset to a new one, intra-org.
 
         Args:
             ruleset_id: the ruleset to copy.
+            postfix: ruleset and rule names have to be unique. Give the user the ability to
 
         Returns:
             A State object.
@@ -720,25 +793,29 @@ class State:
         """
 
     @lazy
-    def update_rule(self, rule_id: str, exe: str ='/bin/nano') -> 'State':
+    def update_rule(self, rule_id: str, rule_data: str) -> 'State':
         """
-        Create a new rule from a JSON file.
+        Update a rule that already exists in the local filesystem.
+
+        Args:
+            rule_id: ID of the rule to update.
+            rule_data: file to use to overwrite the current rule's data stashed on-disk.
 
         Returns:
             A State object.
         """
         # Locate the rule in this organization (make sure it exists, that is).
-        for ruleset in os.listdir(self.organization_dir):
-            if rule_id in os.listdir(self.organization_dir + ruleset):
-                rule_dir = f'{self.organization_dir}{ruleset}/{rule_id}/'
-                break
-        else:
+        if not (rule_dir := self._locate_rule(rule_id)):
             print(f'Rule ID \'{rule_id}\' not found in this organization. Please create before updating.')
             return self
 
-        # Edit the rule file.
-        if edit_file(exe, f'{rule_dir}rule.json'):
-            self._state_add_rule(ruleset, rule_id, endpoint='rule')
+        ruleset_id = ...
+
+        self._create_rule(
+            ...,
+            ...,
+            ...
+        )
 
         return self
 
@@ -757,10 +834,10 @@ class State:
         Delete a rule from the current workspace.
 
         Args:
-            rule_id: ID of the rule to delete. If self.lazy is enabled, then the remote copy is deleted
+            rule_id: ID of the rule to delete.
 
         Returns:
-
+            A State object.
         """
 
     @lazy
@@ -769,8 +846,8 @@ class State:
         Delete an entire ruleset from the current workspace.
 
         Args:
-            ruleset_id:
+            ruleset_id: ruleset ID to delete.
 
         Returns:
-
+            A State object.
         """

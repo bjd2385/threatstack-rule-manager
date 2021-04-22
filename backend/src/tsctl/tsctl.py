@@ -2,22 +2,25 @@
 A Threat Stack rule manager for your terminal.
 """
 
+from typing import Tuple, Dict
+
 import logging
 import configparser
 import os
 import json
 
-from typing import Tuple, Dict
-
 from argparse import ArgumentParser, MetavarTypeHelpFormatter
 from textwrap import dedent
-
 from .state import State
 from .utils import read_json, write_json
 from . import __version__
 
 
-def config_parse() -> Tuple[bool, str, str, str, Dict[str, str]]:
+# Global variable. To be referenced when reading config.
+lazy_eval = True
+
+
+def config_parse() -> Tuple[bool, str, str, Dict[str, str]]:
     """
     Initialize the state directory in the user's home directory and parse config options.
 
@@ -25,6 +28,8 @@ def config_parse() -> Tuple[bool, str, str, str, Dict[str, str]]:
         A tuple of the base state directory path (within which all organization changes will be made) and the state
         file path (where these changes will be tracked), as well as API credentials.
     """
+    global lazy_eval
+
     home = os.path.expanduser('~') + '/'
     conf = home + '.threatstack.conf'
 
@@ -48,10 +53,9 @@ def config_parse() -> Tuple[bool, str, str, str, Dict[str, str]]:
     parser.read(conf)
 
     # Collect runtime options, such as laziness and log level.
-    lazy_evaluation = True
     if 'RUNTIME' in parser.sections():
         runtime_section = parser['RUNTIME']
-        lazy_evaluation = runtime_section.get('LAZY_EVAL', fallback='True') == 'True'
+        lazy_eval = runtime_section.get('LAZY_EVAL', fallback='True') == 'True'
         loglevel = runtime_section.get('LOGLEVEL', fallback='ERROR')
     else:
         print(f'Must define RUNTIME section in \'{conf}\'.')
@@ -113,7 +117,7 @@ def config_parse() -> Tuple[bool, str, str, str, Dict[str, str]]:
             'api_key': os.getenv('API_KEY')
         }
 
-    return lazy_evaluation, editor, state_directory_path, state_file_path, credentials
+    return lazy_eval, state_directory_path, state_file_path, credentials
 
 
 def vcs_gitignore(state_dir: str, state_file_name: str) -> None:
@@ -122,7 +126,8 @@ def vcs_gitignore(state_dir: str, state_file_name: str) -> None:
     using VCS.
 
     Args:
-        state_dir: directory all state is stored within (likely ~/.threatstack/).
+        state_dir: directory all state is stored within (by default, ~/.threatstack/).
+        state_file_name: path/filename to give the state file (by default, ~/.threatstack/.threatstack.state.json).
 
     Returns:
         Nothing.
@@ -151,7 +156,7 @@ def workspace(state_dir: str, state_file: str, org_id: str, credentials: Dict[st
     state = read_json(state_file)
     state['workspace'] = org_id
     write_json(state_file, state)
-    new_state = State(state_dir, state_file, org_id, **credentials)
+    new_state = State(state_dir, state_file, org_id=org_id, **credentials)
     return new_state
 
 
@@ -172,7 +177,7 @@ def plan(state_file: str) -> None:
 
 
 def main() -> None:
-    lazy_evaluation, editor, state_directory, state_file, credentials = config_parse()
+    lazy, state_directory, state_file, credentials = config_parse()
     vcs_gitignore(state_directory, state_file.split('/')[-1])
 
     parser = ArgumentParser(description=__doc__,
@@ -186,7 +191,7 @@ def main() -> None:
     # Rules
 
     group.add_argument(
-        '--create-rule', dest='create_rule', nargs=1, type=str, metavar=('RULESET',),
+        '--create-rule', dest='create_rule', nargs=2, type=str, metavar=('RULESET', 'FILE'),
         help='(lazy) Create a new rule from a JSON file.'
     )
 
@@ -201,12 +206,12 @@ def main() -> None:
     )
 
     group.add_argument(
-        '--update-rule', dest='update_rule', nargs=1, type=str, metavar=('RULE',),
+        '--update-rule', dest='update_rule', nargs=2, type=str, metavar=('RULE', 'FILE'),
         help='(lazy) Update a rule in a ruleset with a rule in a JSON file.'
     )
 
     group.add_argument(
-        '--update-tags', dest='update_rule_tags', nargs=1, type=str, metavar=('RULE',),
+        '--update-tags', dest='update_rule_tags', nargs=2, type=str, metavar=('RULE', 'FILE'),
         help='(lazy) Update the tags on a rule.'
     )
 
@@ -218,8 +223,8 @@ def main() -> None:
     # Rulesets
 
     group.add_argument(
-        '--create-ruleset', dest='create_ruleset', action='store_true',
-        help='(lazy) Create a new ruleset in the configured org.'
+        '--create-ruleset', dest='create_ruleset', nargs=1, type=str, metavar=('FILE',),
+        help='(lazy) Create a new ruleset.'
     )
 
     group.add_argument(
@@ -233,7 +238,7 @@ def main() -> None:
     )
 
     group.add_argument(
-        '--update-ruleset', dest='update_ruleset', nargs=1, type=str, metavar=('RULESET',),
+        '--update-ruleset', dest='update_ruleset', nargs=2, type=str, metavar=('RULESET', 'FILE'),
         help='(lazy) Update a ruleset from a JSON file.'
     )
 
@@ -304,10 +309,11 @@ def main() -> None:
         print('Must set a workspace/organization ID to begin.')
         exit(1)
 
-    organization = State(state_directory, state_file, org_id, **credentials)
+    organization = State(state_directory, state_file, org_id=org_id, **credentials)
 
     if options['create_rule']:
         # FIXME: add a method to create a rule here
+        print(options['create_rule'])
         organization.create_rule()
 
     elif options['copy_rule']:
@@ -318,7 +324,7 @@ def main() -> None:
 
     elif options['update_rule']:
         rule_id = options['update_rule'][0]
-        organization.update_rule(rule_id, editor)
+        organization.update_rule(rule_id)
 
     elif options['update_rule_tags']:
         ...
@@ -351,7 +357,7 @@ def main() -> None:
         if not org_id:
             print('Must set a workspace/organization ID (--workspace) to automatically refresh.')
             exit(1)
-        organization = State(state_directory, state_file, org_id, **credentials)
+        organization = State(state_directory, state_file, org_id=org_id, **credentials)
         organization.refresh()
 
     elif options['push']:

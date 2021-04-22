@@ -77,6 +77,37 @@ def retry(tries: int) -> Callable:
     return _f
 
 
+def paginate(aggregate_field: str) -> Callable:
+    """
+    For rules and rulesets, I don't think pagination is yet necessary. When I eventually implement a tasks subparser,
+    I could add this on the GET endpoint wrapping the retry.
+
+    Args:
+        aggregate_field: on endpoints that have pagination, like GET servers,
+
+    Returns:
+        Dictionary of the concatenated/aggregated results, with a null token.
+    """
+    def _f(f: Callable) -> Callable:
+        @wraps(f)
+        def new_f(*args: Any, **kwargs: Any) -> Dict:
+            aggregate = {
+                aggregate_field: [],
+                'token': None
+            }
+            while True:
+                res = f(*args, **kwargs)
+                if aggregate_field in res:
+                    aggregate[aggregate_field] += res[aggregate_field]
+                    if res['token'] == '' or res['token'] is None:
+                        break
+                else:
+                    raise KeyError(f'Fatal - aggregate field \'{aggregate_field}\' doesn\'t exist on this endpoint.')
+            return aggregate
+        return new_f
+    return _f
+
+
 class API:
     """
     API object that provides a higher level interface to the remote organizations' state.
@@ -337,11 +368,3 @@ class API:
                 raise URLError(
                     f'Did not get valid JSON in response: {response.text if response.text else response.reason} ~ {response.status_code}'
                 )
-
-
-def paginate(f: Callable) -> Optional[Dict]:
-    """
-    For rules and rulesets, I don't think pagination is yet necessary. When I eventually implement a tasks subparser,
-    I could implement this on the GET endpoint.
-    """
-    raise NotImplementedError
