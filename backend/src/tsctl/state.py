@@ -43,7 +43,7 @@ def lazy(f: Callable[..., 'State']) -> Callable:
     return _new_f
 
 
-class _MetaState(type):
+class MetaState(type):
     """
     Ensure created State instances are unique at the org. level. Slightly different than a Singleton. If a user tries
     to create a duplicate State instance by org. ID, return the existing one.
@@ -53,11 +53,11 @@ class _MetaState(type):
     def __call__(cls, *args, **kwargs) -> 'State':
         org_id = kwargs['org_id']
         if org_id not in cls._instances:
-            cls._instances[org_id] = super(_MetaState, cls).__call__(*args, **kwargs)
+            cls._instances[org_id] = super(MetaState, cls).__call__(*args, **kwargs)
         return cls._instances[org_id]
 
 
-class State(metaclass=_MetaState):
+class State(metaclass=MetaState):
     """
     Manage local and remote organizational state through OS-level calls and API calls.
     """
