@@ -13,7 +13,7 @@ from functools import wraps
 from urllib.error import URLError
 from uuid import uuid4
 from .api import API
-from .utils import read_json, write_json, Color
+from .utils import read_json, write_json, Color, edit_file
 
 
 RuleStatus = Literal['rule', 'tags', 'both', 'del']
@@ -351,8 +351,13 @@ class State:
 
         if self.org_id in state['organizations']:
             if ruleset_id in state['organizations'][self.org_id]:
-                if rule_id not in state['organizations'][self.org_id][ruleset_id]['rules'] or state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] != endpoint:
+                # FIXME: This is ... incredibly unreadable.
+                if rule_id not in state['organizations'][self.org_id][ruleset_id]['rules']:
                     state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = endpoint
+                elif (endpoint == 'both' and state['organizations'][self.org_id][ruleset_id]['rules'] != 'both') or \
+                     (endpoint == 'rule' and state['organizations'][self.org_id][ruleset_id]['rules'] == 'tags') or \
+                     (endpoint == 'tags' and state['organizations'][self.org_id][ruleset_id]['rules'] == 'rule'):
+                    state['organizations'][self.org_id][ruleset_id]['rules'] = 'both'
             else:
                 # Add the ruleset, then the rule thereunder with a recursive call to end up down a different code path.
                 state = self._state_add_ruleset(ruleset_id, action='false', state=state)
@@ -715,13 +720,27 @@ class State:
         """
 
     @lazy
-    def update_rule(self, ruleset_id: str, rule_id: str, filename: str) -> 'State':
+    def update_rule(self, rule_id: str, exe: str ='/bin/nano') -> 'State':
         """
         Create a new rule from a JSON file.
 
         Returns:
             A State object.
         """
+        # Locate the rule in this organization (make sure it exists, that is).
+        for ruleset in os.listdir(self.organization_dir):
+            if rule_id in os.listdir(self.organization_dir + ruleset):
+                rule_dir = f'{self.organization_dir}{ruleset}/{rule_id}/'
+                break
+        else:
+            print(f'Rule ID \'{rule_id}\' not found in this organization. Please create before updating.')
+            return self
+
+        # Edit the rule file.
+        if edit_file(exe, f'{rule_dir}rule.json'):
+            self._state_add_rule(ruleset, rule_id, endpoint='rule')
+
+        return self
 
     @lazy
     def update_ruleset(self, ruleset_id: str, filename: str) -> 'State':

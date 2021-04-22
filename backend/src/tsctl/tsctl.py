@@ -2,21 +2,22 @@
 A Threat Stack rule manager for your terminal.
 """
 
-from typing import Tuple, Dict
-
-from argparse import ArgumentParser, MetavarTypeHelpFormatter
-from textwrap import dedent
-from .state import State
-from .utils import read_json, write_json
-from . import __version__
-
 import logging
 import configparser
 import os
 import json
 
+from typing import Tuple, Dict
 
-def config_parse() -> Tuple[bool, str, str, Dict[str, str]]:
+from argparse import ArgumentParser, MetavarTypeHelpFormatter
+from textwrap import dedent
+
+from .state import State
+from .utils import read_json, write_json
+from . import __version__
+
+
+def config_parse() -> Tuple[bool, str, str, str, Dict[str, str]]:
     """
     Initialize the state directory in the user's home directory and parse config options.
 
@@ -112,7 +113,7 @@ def config_parse() -> Tuple[bool, str, str, Dict[str, str]]:
             'api_key': os.getenv('API_KEY')
         }
 
-    return lazy_evaluation, state_directory_path, state_file_path, credentials
+    return lazy_evaluation, editor, state_directory_path, state_file_path, credentials
 
 
 def vcs_gitignore(state_dir: str, state_file_name: str) -> None:
@@ -171,7 +172,7 @@ def plan(state_file: str) -> None:
 
 
 def main() -> None:
-    lazy_evaluation, state_directory, state_file, credentials = config_parse()
+    lazy_evaluation, editor, state_directory, state_file, credentials = config_parse()
     vcs_gitignore(state_directory, state_file.split('/')[-1])
 
     parser = ArgumentParser(description=__doc__,
@@ -185,59 +186,59 @@ def main() -> None:
     # Rules
 
     group.add_argument(
-        '-c', '--create-rule', dest='create_rule', nargs=2, type=str, metavar=('RULESET', 'FILE'),
+        '--create-rule', dest='create_rule', nargs=1, type=str, metavar=('RULESET',),
         help='(lazy) Create a new rule from a JSON file.'
     )
 
     group.add_argument(
-        '-n', '--copy-rule', dest='copy_rule', nargs=2, type=str, metavar=('RULE', 'RULESET'),
+        '--copy-rule', dest='copy_rule', nargs=2, type=str, metavar=('RULE', 'RULESET'),
         help='(lazy) Copy a rule from one ruleset to another (in the same organization).'
     )
 
     group.add_argument(
-        '-N', '--copy-rule-out', dest='copy_rule_out', nargs=3, type=str, metavar=('RULE', 'RULESET', 'ORGID'),
+        '--copy-rule-out', dest='copy_rule_out', nargs=3, type=str, metavar=('RULE', 'RULESET', 'ORGID'),
         help='(lazy) Copy a rule from the current workspace to a ruleset in a different organization.'
     )
 
     group.add_argument(
-        '-u', '--update-rule', dest='update_rule', nargs=3, type=str, metavar=('RULESET', 'RULE', 'FILE'),
+        '--update-rule', dest='update_rule', nargs=1, type=str, metavar=('RULE',),
         help='(lazy) Update a rule in a ruleset with a rule in a JSON file.'
     )
 
     group.add_argument(
-        '-t', '--update-tags', dest='update_rule_tags', nargs=2, type=str, metavar=('RULE', 'FILE'),
-        help='(lazy) Create or update tags on a rule.'
+        '--update-tags', dest='update_rule_tags', nargs=1, type=str, metavar=('RULE',),
+        help='(lazy) Update the tags on a rule.'
     )
 
     group.add_argument(
-        '-d', '--delete-rule', dest='delete_rule', nargs=1, type=str, metavar=('RULE',),
+        '--delete-rule', dest='delete_rule', nargs=1, type=str, metavar=('RULE',),
         help='(lazy) Delete a rule from the current workspace.'
     )
 
     # Rulesets
 
     group.add_argument(
-        '-a', '--create-ruleset', dest='create_ruleset', nargs=1, type=str, metavar=('FILE',),
+        '--create-ruleset', dest='create_ruleset', action='store_true',
         help='(lazy) Create a new ruleset in the configured org.'
     )
 
     group.add_argument(
-        '-m', '--copy-ruleset', dest='copy_ruleset', nargs=2, type=str, metavar=('RULESET', 'NEWNAME'),
+        '--copy-ruleset', dest='copy_ruleset', nargs=1, type=str, metavar=('RULESET',),
         help='(lazy) Copy an entire ruleset with a new name to the same workspace.'
     )
 
     group.add_argument(
-        '-M', '--copy-ruleset-out', dest='copy_ruleset_out', nargs=2, type=str, metavar=('RULESET', 'ORGID'),
+        '--copy-ruleset-out', dest='copy_ruleset_out', nargs=2, type=str, metavar=('RULESET', 'ORGID'),
         help='(lazy) Copy an entire ruleset in the current workspace to a different organization.'
     )
 
     group.add_argument(
-        '-U', '--update-ruleset', dest='update_ruleset', nargs=2, type=str, metavar=('RULESET', 'FILE'),
+        '--update-ruleset', dest='update_ruleset', nargs=1, type=str, metavar=('RULESET',),
         help='(lazy) Update a ruleset from a JSON file.'
     )
 
     group.add_argument(
-        '-D', '--delete-ruleset', dest='delete_ruleset', nargs=1, type=str, metavar=('RULESET',),
+        '--delete-ruleset', dest='delete_ruleset', nargs=1, type=str, metavar=('RULESET',),
         help='(lazy) Delete a ruleset from the current workspace.'
     )
 
@@ -260,7 +261,7 @@ def main() -> None:
 
     group.add_argument(
         '--push-all', dest='push_all', action='store_true',
-        help='Push all modified organization\'s to remote state (the platform).'
+        help='Push all modified local organizations to remote state (the platform).'
     )
 
     group.add_argument(
@@ -285,7 +286,10 @@ def main() -> None:
 
     options = vars(parser.parse_args())
 
-    if options['version']:
+    if options['switch']:
+        org_id = options['switch']
+        workspace(state_directory, state_file, org_id, credentials)
+    elif options['version']:
         print(f'tsctl v{__version__}')
         return
 
@@ -313,7 +317,8 @@ def main() -> None:
         ...
 
     elif options['update_rule']:
-        ...
+        rule_id = options['update_rule'][0]
+        organization.update_rule(rule_id, editor)
 
     elif options['update_rule_tags']:
         ...
@@ -354,7 +359,3 @@ def main() -> None:
 
     elif options['push_all']:
         ...
-
-    elif options['switch']:
-        org_id = options['switch']
-        workspace(state_directory, state_file, org_id, credentials)

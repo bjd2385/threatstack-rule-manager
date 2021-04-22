@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  backend:
+    image: "tsctl:latest"
+    build: .
+    ports:
+      - "8085:8085"
+    volumes:
+      - .:/code
+  web:
+    image: "ruleviewer:latest"
