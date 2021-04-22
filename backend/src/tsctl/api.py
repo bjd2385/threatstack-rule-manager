@@ -126,7 +126,7 @@ class API:
         self._sender: Optional[Sender] = None
         self._header: Optional[str] = None
 
-    def _update_sender(self, url: str, data: Optional[Dict] =None) -> None:
+    def _update_sender(self, url: str, method: str, data: Optional[Dict] =None) -> None:
         """
         Update the retrieved token.
 
@@ -140,7 +140,7 @@ class API:
             credentials=self._credentials,
             url=url,
             content=json.dumps(data) if data else data,
-            method='GET',
+            method=method,
             always_hash_content=False,
             content_type='application/json',
             ext=self._ext
@@ -158,7 +158,7 @@ class API:
         Returns:
             A response on that endpoint, or nothing if an error is returned.
         """
-        self._update_sender(url)
+        self._update_sender(url, 'GET')
 
         response = requests.get(
             url=url,
@@ -285,7 +285,7 @@ class API:
         Returns:
             A response on that endpoint, or nothing if an error is returned.
         """
-        self._update_sender(url, data)
+        self._update_sender(url, 'PUT', data)
 
         response = requests.put(
             url=url,
@@ -360,7 +360,7 @@ class API:
         Returns:
             A response on that endpoint, or nothing if an error is returned.
         """
-        self._update_sender(url)
+        self._update_sender(url, 'DELETE')
 
         response = requests.delete(
             url=url,
@@ -425,9 +425,9 @@ class API:
         Returns:
             A response on that endpoint, or nothing if an error is returned.
         """
-        self._update_sender(url, data)
+        self._update_sender(url, 'POST', data)
 
-        response = requests.put(
+        response = requests.post(
             url=url,
             data=json.dumps(data),
             headers={
