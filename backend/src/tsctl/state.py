@@ -4,7 +4,7 @@ changes. State file should maintain a list of minimal change to update remote st
 count.
 """
 
-from typing import Dict, Optional, Callable, Any, Literal
+from typing import Dict, Optional, Callable, Any, Literal, Union
 
 import logging
 import os
@@ -51,6 +51,7 @@ class MetaState(type):
     _instances: Dict[str, 'State'] = dict()
 
     def __call__(cls, *args, **kwargs) -> 'State':
+        # 'org_id' should be a required kwd arg per PEP 3102.
         org_id = kwargs['org_id']
         if org_id not in cls._instances:
             cls._instances[org_id] = super(MetaState, cls).__call__(*args, **kwargs)
@@ -110,45 +111,53 @@ class State(metaclass=MetaState):
         local state file by creating an API interface to the remote organization, then POSTing or PUTting local
         tracked changed rulesets and rules.
 
-        Args:
-            state: if the state file's already opened, you can optionally pass it into this method. Otherwise, it
-                reads a fresh copy from disk.
-
         Returns:
             Nothing.
         """
         state = read_json(self.state_file)
 
         if self.org_id in state['organizations']:
-            api = API()
-            # Iterate over rulesets first, since they can be changed.
+            api = API(**self.credentials)
+
             for ruleset_id in state['organizations'][self.org_id]:
+                ruleset_dir = self.organization_dir + ruleset_id + '/'
+
                 if ruleset_id.endswith(self._postfix):
-                    # This ruleset doesn't exist yet. Save this local ID, we'll modify the local filesystem to reflect
-                    # remote changes to these UUIDs.
-                    ...
+                    # This ruleset doesn't exist yet. Save this local temp. ID, we'll modify the local filesystem
+                    # to reflect remote changes to these platform-assigned UUIDs from return of the POST request.
+                    data = read_json(ruleset_dir + 'ruleset.json')
+                    ruleset_remote_data = api.post_ruleset(data)
+                    ruleset_remote_id = ruleset_remote_data.pop('id')
+                    os.rename(ruleset_dir, self.organization_dir + ruleset_remote_id)
                 elif state['organizations'][self.org_id][ruleset_id]['modified'] == 'true':
                     # PUT update this ruleset.
-                    ...
+                    data = read_json(ruleset_dir + 'ruleset.json')
+                    api.put_ruleset(ruleset_id, data)
                 elif state['organizations'][self.org_id][ruleset_id]['modified'] == 'del':
                     # DELETE this ruleset.
-                    ...
+                    api.delete_ruleset(ruleset_id)
+                    state['organizations'][self.org_id].pop(ruleset_id)
 
-                # Remove this ruleset from the state. Method
-                self._state_delete_ruleset(ruleset_id, state=state)
-
-            for ruleset_id in state['organizations'][self.org_id]:
                 for rule_id in state['organizations'][self.org_id][ruleset_id]['rules']:
+                    
+                else:
                     ...
+
+                # Remove this ruleset from the state since we've made all required local changes.
+                state = self._state_delete_ruleset(ruleset_id, state=state)
+
+            # Clear the organization from the state file, all changes have been pushed to the remote platform.
+            self._state_delete_organization(self.org_id)
         else:
             # Nothing to do.
             return
 
     def refresh(self) -> None:
         """
-        Effectively `push`'s opposite - instead of pushing local state onto the remote platform stanewname: strte, pull all of
-        the remote organization state and copy it over the local organization-level state (effectively overwriting
-        the local organization's state). Deletes prior local state and clears state file of organization change.
+        Effectively `push`'s opposite - instead of pushing local state onto the remote platform stanewname: strte, pull
+        all of the remote organization state and copy it over the local organization-level state (effectively
+        overwriting the local organization's state). Deletes prior local state and clears state file of organization
+        change.
 
         Returns:
             Nothing.
@@ -159,12 +168,9 @@ class State(metaclass=MetaState):
         backup_dir = self.organization_dir + '.backup/'
 
         if os.path.isdir(remote_dir):
-            # We can just delete this (likely) partial remote state capture.
+            # We can just delete this leftover (very likely) partial remote state capture.
             shutil.rmtree(remote_dir)
         if os.path.isdir(backup_dir):
-            # I'm going to let this fail if anyone ever comes across trying to copy duplicate files or dirs back
-            # over the parent dir, because this should not happen. But, if it does, I will investigate with them
-            # how that occurred.
             for ruleset in os.listdir(backup_dir):
                 shutil.move(backup_dir + ruleset, self.organization_dir)
             os.rmdir(backup_dir)
@@ -663,7 +669,7 @@ class State(metaclass=MetaState):
     # Remote state management API.
 
     @lazy
-    def create_ruleset(self, ruleset_data: str) -> 'State':
+    def create_ruleset(self, ruleset_data: Union[str, Dict]) -> 'State':
         """
         Create a new ruleset in the current workspace.
 
@@ -673,7 +679,10 @@ class State(metaclass=MetaState):
         Returns:
             A State object.
         """
-        data = read_json(ruleset_data)
+        if ruleset_data is str:
+            data = read_json(ruleset_data)
+        else:
+            data = ruleset_data
 
         self._create_ruleset(
             ruleset_data=data
@@ -682,7 +691,7 @@ class State(metaclass=MetaState):
         return self
 
     @lazy
-    def create_rule(self, ruleset_id: str, rule_data: str) -> 'State':
+    def create_rule(self, ruleset_id: str, rule_data: Union[str, Dict]) -> 'State':
         """
         Create a new rule from a JSON file in the current workspace.
 
@@ -693,7 +702,10 @@ class State(metaclass=MetaState):
         Returns:
             A State object.
         """
-        data = read_json(rule_data)
+        if rule_data is str:
+            data = read_json(rule_data)
+        else:
+            data = rule_data
 
         self._create_rule(
             ruleset_id=ruleset_id,
@@ -760,7 +772,7 @@ class State(metaclass=MetaState):
         tags_data = read_json(rule_dir + 'tags.json')
 
         # Create a local copy of this rule in the destination organization.
-        alt_state = State(self.state_dir, self.state_file, org_id, self.user_id, self.api_key)
+        alt_state = State(self.state_dir, self.state_file, self.user_id, self.api_key, org_id=org_id)
         alt_state.create_rule(ruleset_id, rule_data, tags_data)
 
         return self
@@ -780,17 +792,18 @@ class State(metaclass=MetaState):
 
 
     @lazy
-    def copy_ruleset_out(self, ruleset_id: str, org_id: str) -> 'State':
+    def copy_ruleset_out(self, ruleset_id: str, org_id: str, postfix: str =' - COPY') -> 'State':
         """
         Copy an entire ruleset to a new organization.
 
         Args:
             ruleset_id: ruleset to copy to the new organization.
-            org_id: the alertnate
+            org_id: the alternate organization into which to copy these changes.
 
         Returns:
             A State object.
         """
+
 
     @lazy
     def update_rule(self, rule_id: str, rule_data: str) -> 'State':

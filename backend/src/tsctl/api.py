@@ -33,7 +33,8 @@ class RateLimitedError(Exception):
 
 def retry(tries: int) -> Callable:
     """
-    A request retry decorator.
+    A request retry decorator. If singledispatch becomes compatible with `typing`, it'd be cool to duplicate this
+    registering another dispatch on `f`, essentially removing a layer.
 
     Args:
         tries: number of times to retry the wrapped function call. When `0`, retries indefinitely.
@@ -83,7 +84,10 @@ def paginate(aggregate_field: str) -> Callable:
     I could add this on the GET endpoint wrapping the retry.
 
     Args:
-        aggregate_field: on endpoints that have pagination, like GET servers,
+        aggregate_field: on endpoints that have pagination, like GET servers, they usually have a field pointing to a
+            list of returned items (objects themselves), such as 'alerts', 'servers', etc. For rule managementm, there
+            aren't typically enough returned rules for pagination to count, but eventually this will need to be applied
+            on additional methods to allow tsctl.tasks to work.
 
     Returns:
         Dictionary of the concatenated/aggregated results, with a null token.
