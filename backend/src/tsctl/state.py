@@ -1,7 +1,7 @@
 """
-Provide a high level interface that respects lazy, local-only edits, and manages a state file as the user makes
-changes. State file should maintain a list of minimal change to update remote state on `push`, hence minimal request
-count.
+Provide a high level, lazy, interface that manages local-only edits, and administers a state file as the user
+makes changes. State file maintains a list of minimal change to update remote state on `push` for minimal request
+count to sync local and platform states.
 """
 
 from typing import Dict, Optional, Callable, Any, Literal, Union
@@ -125,23 +125,79 @@ class State(metaclass=MetaState):
                 if ruleset_id.endswith(self._postfix):
                     # This ruleset doesn't exist yet. Save this local temp. ID, we'll modify the local filesystem
                     # to reflect remote changes to these platform-assigned UUIDs from return of the POST request.
-                    data = read_json(ruleset_dir + 'ruleset.json')
-                    ruleset_remote_data = api.post_ruleset(data)
+                    ruleset_data = read_json(ruleset_dir + 'ruleset.json')
+                    ruleset_remote_data = api.post_ruleset(ruleset_data)
                     ruleset_remote_id = ruleset_remote_data.pop('id')
                     os.rename(ruleset_dir, self.organization_dir + ruleset_remote_id)
+                    ruleset_dir = self.organization_dir + ruleset_remote_id + '/'
+                    state['organizations'][self.org_id][ruleset_remote_id] = state['organizations'][self.org_id].pop(ruleset_id)
+
+                    for rule_id in state['organizations'][self.org_id][ruleset_remote_id]['rules']:
+                        rule_dir = ruleset_dir + rule_id + '/'
+                        rule_data = read_json(rule_dir + 'rule.json')
+                        tags_data = read_json(rule_dir + 'tags.json')
+                        if rule_id.endswith(self._postfix):
+                            # Local only, make a POST request and update the directory structure to the platform-assigned ID.
+                            if state['organizations'][self.org_id][ruleset_remote_id]['rules'][rule_id] == 'both':
+                                rule_remote_data = api.post_rule(ruleset_remote_id, rule_data)
+                                rule_remote_id = rule_remote_data.pop('id')
+                                os.rename(rule_dir, ruleset_dir + rule_remote_id)
+                                rule_dir = ruleset_dir + rule_remote_id
+                                tags_remote_data = api.post_tags(rule_remote_id, tags_data)
+                            elif state['organizations'][self.org_id][ruleset_remote_id]['rules'][rule_id] == 'rule':
+                                rule_remote_data = api.post_rule(ruleset_remote_id, rule_data)
+                                rule_remote_id = rule_remote_data.pop('id')
+                                os.rename(rule_dir, ruleset_dir + rule_remote_id)
+                                rule_dir = ruleset_dir + rule_remote_id
+                            else:
+                                raise ValueError('New rulesets can\'t contain new rules with only tag edits.')
+                        else:
+                            # Already has a platform-assigned ID, so we can make PUT requests to update.
+                            if state['organizations'][self.org_id][ruleset_remote_id]['rules'][rule_id] == 'both':
+                                api.put_rule(ruleset_remote_id, rule_id, rule_data)
+                                api.post_tags(rule_id, tags_data)
+                            elif state['organizations'][self.org_id][ruleset_remote_id]['rules'][rule_id] == 'rule':
+                                api.put_rule(ruleset_remote_id, rule_id, rule_data)
+                            elif state['organizations'][self.org_id][ruleset_remote_id]['rules'][rule_id] == 'tags':
+                                api.post_tags(rule_id, tags_data)
                 elif state['organizations'][self.org_id][ruleset_id]['modified'] == 'true':
                     # PUT update this ruleset.
                     data = read_json(ruleset_dir + 'ruleset.json')
                     api.put_ruleset(ruleset_id, data)
+
+                    # We can iterate over rules on this ruleset in the same manner as above, but remove all references
+                    # to `ruleset_remote_id`, since our local ID is the same as the remote one.
+                    for rule_id in state['organizations'][self.org_id][ruleset_id]['rules']:
+                        rule_dir = ruleset_dir + rule_id + '/'
+                        rule_data = read_json(rule_dir + 'rule.json')
+                        tags_data = read_json(rule_dir + 'tags.json')
+                        if rule_id.endswith(self._postfix):
+                            # Local only, make a POST request and update the directory structure to the platform-assigned ID.
+                            if state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'both':
+                                rule_remote_data = api.post_rule(ruleset_id, rule_data)
+                                rule_remote_id = rule_remote_data.pop('id')
+                                os.rename(rule_dir, ruleset_dir + rule_remote_id)
+                                rule_dir = ruleset_dir + rule_remote_id
+                                api.post_tags(rule_remote_id, tags_data)
+                            elif state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'rule':
+                                rule_remote_data = api.post_rule(ruleset_id, rule_data)
+                                rule_remote_id = rule_remote_data.pop('id')
+                                os.rename(rule_dir, ruleset_dir + rule_remote_id)
+                                rule_dir = ruleset_dir + rule_remote_id
+                            else:
+                                raise ValueError('New rulesets can\'t contain new rules with only tag edits.')
+                        else:
+                            # Already has a platform-assigned ID, so we can make PUT requests to update.
+                            if state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'both':
+                                api.put_rule(ruleset_id, rule_id, rule_data)
+                                api.post_tags(rule_id, tags_data)
+                            elif state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'rule':
+                                api.put_rule(ruleset_id, rule_id, rule_data)
+                            elif state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'tags':
+                                api.post_tags(rule_id, tags_data)
                 elif state['organizations'][self.org_id][ruleset_id]['modified'] == 'del':
                     # DELETE this ruleset.
                     api.delete_ruleset(ruleset_id)
-                    state['organizations'][self.org_id].pop(ruleset_id)
-
-                for rule_id in state['organizations'][self.org_id][ruleset_id]['rules']:
-                    
-                else:
-                    ...
 
                 # Remove this ruleset from the state since we've made all required local changes.
                 state = self._state_delete_ruleset(ruleset_id, state=state)
@@ -605,17 +661,25 @@ class State(metaclass=MetaState):
 
         return
 
-    def _edit_rule(self, ruleset_id: str, rule_id: str) -> bool:
+    def _edit_rule(self, rule_id: str, rule_data: Dict) -> None:
         """
         Modify a local rule in a ruleset in an organization's directory.
 
         Args:
-            ruleset_id: ruleset that contains the rule to be edited.
-            rule_id:
+            rule_id: ID of the rule to overwrite data on.
+            rule_data: rule data to write to file.
 
         Returns:
-
+            Nothing.
         """
+        if not (rule_dir := self._locate_rule(rule_id)):
+            raise ValueError(f'Rule ID \'{rule_id}\' does not exist.')
+
+        write_json(rule_dir + 'rule.json', rule_data)
+        ruleset_id = rule_dir.split('/')[-2]
+        self._state_add_rule(ruleset_id, rule_id, endpoint='rule')
+
+        return
 
     def _delete_rule(self, rule_id: str) -> bool:
         """
@@ -629,9 +693,12 @@ class State(metaclass=MetaState):
         """
         # Attempt to locate the rule.
         for ruleset in os.listdir(self.organization_dir):
-            for rule in os.listdir(self.organization_dir + ruleset):
+            ruleset_dir = self.organization_dir + ruleset + '/'
+            for rule in os.listdir(ruleset_dir):
+                rule_dir = ruleset_dir + rule + '/'
                 if rule == rule_id:
-                    # TODO
+                    shutil.rmtree(rule_dir)
+                    self._state_delete_rule(rule_id)
                     return True
         else:
             return False
@@ -778,7 +845,7 @@ class State(metaclass=MetaState):
         return self
 
     @lazy
-    def copy_ruleset(self, ruleset_id: str, postfix: str =' - COPY') -> 'State':
+    def copy_ruleset(self, ruleset_id: str, postfix: str ='-COPY') -> 'State':
         """
         Copy an entire ruleset to a new one, intra-org.
 
@@ -789,16 +856,17 @@ class State(metaclass=MetaState):
         Returns:
             A State object.
         """
-
+        
 
     @lazy
-    def copy_ruleset_out(self, ruleset_id: str, org_id: str, postfix: str =' - COPY') -> 'State':
+    def copy_ruleset_out(self, ruleset_id: str, org_id: str, postfix: str ='-COPY') -> 'State':
         """
         Copy an entire ruleset to a new organization.
 
         Args:
             ruleset_id: ruleset to copy to the new organization.
             org_id: the alternate organization into which to copy these changes.
+            postfix: postfix to append to the ruleset
 
         Returns:
             A State object.

@@ -25,7 +25,9 @@ setup(
     install_requires=[
         'mohawk>=1.1.0',
         'requests>=2.25.1',
-        'urllib3>=1.26.4'
+        'urllib3>=1.26.4',
+        'GitPython>=3.1.14',
+        'gunicorn>=20.1.0'
     ],
     entry_points={
         'console_scripts': [

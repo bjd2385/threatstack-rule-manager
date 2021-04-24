@@ -90,6 +90,7 @@ The state file (by default, `~/.threatstack/.threatstack.state.json`) tracks loc
 2. Add proper `logging` implementation throughout the module.
 3. Set up GH Actions when the repo is tagged.
 4. Simplify state.State rule and ruleset directory lookups by adding some new methods.
+5. Add `Organization :> Ruleset :> Rule` classes so we can simplify `state.State` by extending or overloading methods? Would make a lot of the logic clearer and easier to maintain.
 
 ### Development Notes
 
