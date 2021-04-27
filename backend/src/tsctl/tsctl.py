@@ -265,11 +265,6 @@ def main() -> None:
     )
 
     group.add_argument(
-        '--push-all', dest='push_all', action='store_true',
-        help='Push all modified local organizations to remote state (the platform).'
-    )
-
-    group.add_argument(
         '--plan', dest='plan', action='store_true',
         help=f'View the state file, or the tracked difference between local state and remote state.'
     )
@@ -312,56 +307,61 @@ def main() -> None:
     organization = State(state_directory, state_file, org_id=org_id, **credentials)
 
     if options['create_rule']:
-        # FIXME: add a method to create a rule here
-        print(options['create_rule'])
-        organization.create_rule()
+        ruleset_id, rule_data = options['create_rule'][0], read_json(options['create_rule'][1])
+        organization.create_rule(ruleset_id, rule_data)
 
     elif options['copy_rule']:
-        ...
+        rule_id, ruleset_id = options['copy_rule']
+        organization.copy_rule(rule_id, ruleset_id)
 
     elif options['copy_rule_out']:
-        ...
+        rule_id, ruleset_id, org_id = options['copy_rule_out']
+        organization.copy_rule_out(rule_id, ruleset_id, org_id)
 
     elif options['update_rule']:
-        rule_id = options['update_rule'][0]
-        organization.update_rule(rule_id)
+        rule_id, rule_data = options['update_rule'][0], read_json(options['update_rule'][1])
+        organization.update_rule(
+            *options['update_rule'][:-1],
+            rule_data=rule_data
+        )
 
     elif options['update_rule_tags']:
-        ...
+        rule_id, tags_data = options['update_rule_tags'][0], read_json(options['update_rule_tags'][-1])
+        organization.create_tags(
+            rule_id,
+            tags_data
+        )
 
     elif options['delete_rule']:
-        ...
+        rule_id = options['delete_rule'][0]
+        organization.delete_rule(rule_id)
 
     elif options['create_ruleset']:
-        # FIXME: add a method to create a ruleset here?
-        organization.create_ruleset()
+        ruleset_data = read_json(options['create_ruleset'][0])
+        organization.create_ruleset(ruleset_data)
 
     elif options['copy_ruleset']:
-        ...
+        ruleset_id = options['copy_ruleset'][0]
+        organization.copy_ruleset(ruleset_id)
 
     elif options['copy_ruleset_out']:
-        ...
+        ruleset_id, org_id = options['copy_ruleset_out'][0], read_json(options['copy_ruleset_out'][1])
+        organization.copy_ruleset_out(ruleset_id, org_id)
 
     elif options['update_ruleset']:
-        ...
+        ruleset_id, ruleset_data = options['update_ruleset'][0], read_json(options['update_ruleset'][1])
+        organization.update_ruleset(ruleset_id, ruleset_data)
 
     elif options['delete_ruleset']:
-        ...
+        ruleset_id = options['delete_ruleset'][0]
+        organization.delete_ruleset(ruleset_id)
 
     elif options['list']:
         organization.lst(colorful=options['color'])
 
     elif options['refresh']:
         state = read_json(state_file)
-        org_id = state['workspace']
-        if not org_id:
-            print('Must set a workspace/organization ID (--workspace) to automatically refresh.')
-            exit(1)
-        organization = State(state_directory, state_file, org_id=org_id, **credentials)
         organization.refresh()
 
     elif options['push']:
-        ...
-
-    elif options['push_all']:
-        ...
+        organization.push()
