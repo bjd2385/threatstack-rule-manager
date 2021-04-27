@@ -10,7 +10,7 @@ tsctl
 ```text
 $ tsctl -h
 usage: tsctl [-h] [--create-rule RULESET FILE] [--copy-rule RULE RULESET] [--copy-rule-out RULE RULESET ORGID] [--update-rule RULE FILE] [--update-tags RULE FILE] [--delete-rule RULE] [--create-ruleset FILE] [--copy-ruleset RULESET] [--copy-ruleset-out RULESET ORGID]
-             [--update-ruleset RULESET FILE] [--delete-ruleset RULESET] [-l] [-r] [--push] [--push-all] [--plan] [-w ORGID] [--colorful] [--version]
+             [--update-ruleset RULESET FILE] [--delete-ruleset RULESET] [-l] [-r] [--push] [--plan] [-w ORGID] [--colorful] [--version]
 
 A Threat Stack rule manager for your terminal.
 
@@ -30,7 +30,7 @@ optional arguments:
   --create-ruleset FILE
                         (lazy) Create a new ruleset.
   --copy-ruleset RULESET
-                        (lazy) Copy an entire ruleset with a new name to the same workspace.
+                        (lazy) Copy an entire ruleset with a new name to the same organization.
   --copy-ruleset-out RULESET ORGID
                         (lazy) Copy an entire ruleset in the current workspace to a different organization.
   --update-ruleset RULESET FILE
@@ -40,7 +40,6 @@ optional arguments:
   -l, --list            List rulesets and (view) rules
   -r, --refresh         Refresh local copy of the organization's rules and flush local state.
   --push                Push a workspace's state to remote state (the platform).
-  --push-all            Push all modified local organizations to remote state (the platform).
   --plan                View the state file, or the tracked difference between local state and remote state.
   -w ORGID, --workspace ORGID
                         Set the organization ID within which you are working, automatically starts a refresh.
