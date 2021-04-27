@@ -316,7 +316,7 @@ def main() -> None:
     elif options['update_rule']:
         rule_id, rule_data = options['update_rule'][0], read_json(options['update_rule'][1])
         organization.update_rule(
-            *options['update_rule'][:-1],
+            rule_id=rule_id,
             rule_data=rule_data
         )
 

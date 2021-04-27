@@ -253,7 +253,7 @@ class API:
             The rule data.
         """
         if response := self._get(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules/{rule_id}'):
-            for field in ('rulesetId', 'updatedAt', 'createdAt'):
+            for field in ('id', 'rulesetId', 'updatedAt', 'createdAt'):
                 if field in response:
                     response.pop(field)
 

@@ -92,6 +92,7 @@ The state file (by default, `~/.threatstack/.threatstack.state.json`) tracks loc
 4. Simplify state.State rule and ruleset directory lookups by adding some new methods.
 5. Add `Organization :> Ruleset :> Rule` classes so we can simplify `state.State` by extending or overloading methods? Would make a lot of the logic clearer and easier to maintain.
     - This may also mean that we can define operators between organizations and rulesets? Maybe even rules, for backend-based diffs retrievable via API?
+6. Bash autocompletions would be cool.
 
 ### Development Notes
 
