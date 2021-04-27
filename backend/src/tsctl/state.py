@@ -9,13 +9,13 @@ from typing import Dict, Optional, Callable, Any, Literal, Union
 import logging
 import os
 import shutil
-import tsctl
 
 from functools import wraps
 from urllib.error import URLError
 from uuid import uuid4
 from .api import API
 from .utils import read_json, write_json, Color
+from . import lazy_eval
 
 
 RuleStatus = Literal['rule', 'tags', 'both', 'del']
@@ -34,7 +34,7 @@ def lazy(f: Callable[..., 'State']) -> Callable:
     """
     @wraps(f)
     def _new_f(*args: Any, **kwargs: Any) -> Optional['State']:
-        if tsctl.tsctl.lazy_eval:
+        if lazy_eval:
             return f(*args, **kwargs)
         else:
             f(*args, **kwargs).push()
@@ -750,13 +750,14 @@ class State:
         return self._create_ruleset(ruleset_data=data)
 
     @lazy
-    def create_rule(self, ruleset_id: str, rule_data: Union[str, Dict]) -> str:
+    def create_rule(self, ruleset_id: str, rule_data: Union[str, Dict], tags_data: Optional[Union[str, Dict]] =None) -> str:
         """
         Create a new rule from a JSON file in the current workspace.
 
         Args:
             ruleset_id: ruleset under which to create the new rule.
             rule_data: rule data file from which to create the new rule. Must conform to the POST rule schema.
+            tags_data: optionally, specify the tags this new rule should have.
 
         Returns:
             The name of the created rule, since it's probably generated.
@@ -766,10 +767,17 @@ class State:
         else:
             data = rule_data
 
+        if tags_data is None:
+            tags = dict()
+        elif tags_data is str:
+            tags = read_json(tags_data)
+        else:
+            tags = tags_data
+
         return self._create_rule(
             ruleset_id=ruleset_id,
             rule_data=data,
-            tags_data=dict()
+            tags_data=tags
         )
 
     @lazy
@@ -841,6 +849,8 @@ class State:
             print(f'Rule ID \'{rule_id}\' not found in this organization. Please create before updating.')
             return self
 
+        alt_state = State(self.state_dir, self.state_file, self.user_id, self.api_key, org_id=org_id)
+
         # Ensure the destination ruleset ID exists in the destination organization.
         if ruleset_id not in os.listdir(self.state_dir + org_id):
             print(f'Destination ruleset ID \'{ruleset_id}\' not found in organization \'{org_id}\'. Please create this ruleset first.')
@@ -850,7 +860,6 @@ class State:
         tags_data = read_json(rule_dir + 'tags.json')
 
         # Create a local copy of this rule in the destination organization.
-        alt_state = State(self.state_dir, self.state_file, self.user_id, self.api_key, org_id=org_id)
         alt_state.create_rule(ruleset_id, rule_data, tags_data)
 
         return self

@@ -16,10 +16,6 @@ from .utils import read_json, write_json
 from . import __version__
 
 
-# Global variable. To be referenced when reading config.
-lazy_eval = True
-
-
 def config_parse() -> Tuple[bool, str, str, Dict[str, str]]:
     """
     Initialize the state directory in the user's home directory and parse config options.
@@ -38,7 +34,6 @@ def config_parse() -> Tuple[bool, str, str, Dict[str, str]]:
         default_conf_file = dedent(
             """
             [RUNTIME]
-            LAZY_EVAL = true
             LOGLEVEL = ERROR
             
             [STATE]
@@ -88,11 +83,11 @@ def config_parse() -> Tuple[bool, str, str, Dict[str, str]]:
             state_file_path,
             {
                 'workspace': '',
-                'organizations': []
+                'organizations': {}
             }
         )
     else:
-        # TODO: Ensure the existing file at least conforms to the required schema.
+        # TODO: Ensure the existing file at least conforms to the required schema?
         ...
 
     # Collect credentials from the rest of the conf or from env.
@@ -360,7 +355,6 @@ def main() -> None:
         organization.lst(colorful=options['color'])
 
     elif options['refresh']:
-        state = read_json(state_file)
         organization.refresh()
 
     elif options['push']:
