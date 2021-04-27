@@ -230,6 +230,9 @@ class State:
         # Collect rulesets under this organization and create corresponding directories.
         try:
             rulesets = api.get_rulesets()
+            if 'errors' in rulesets:
+                print('Could not retrieve organization with the provided credentials.')
+                exit(1)
             for ruleset in rulesets['rulesets']:
                 ruleset_id = ruleset['id']
 
@@ -494,7 +497,9 @@ class State:
                     if len(state['organizations'][self.org_id][ruleset_id]['rules']) == 1 and state['organizations'][self.org_id][ruleset_id]['modified'] == 'false':
                         # This is the only rule on this ruleset and the ruleset has not been modified; remove the
                         # whole tree, recursively.
-                        self._state_delete_ruleset(ruleset_id, state=state)
+                        state['organizations'][self.org_id].pop(ruleset_id)
+                        if len(state['organizations'][self.org_id]) == 0:
+                            self._state_delete_organization(state=state)
                     else:
                         # This is not the only rule or the containing ruleset has been modified; remove just the rule.
                         state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)

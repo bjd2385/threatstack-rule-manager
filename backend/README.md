@@ -57,7 +57,6 @@ Remember to commit and push your changes on '/home/brandon/.threatstack/' to a g
 * `API_KEY`:
 * `USER_ID`: 
 * `LOGLEVEL`: (optional, default: `INFO`)
-* `LAZY_EVAL`: (optional, default: `false`)
 * `CONFIG_DIR`: (optional, default: `~/.threatstack`)
 
 ### FAQs
@@ -93,6 +92,7 @@ The state file (by default, `~/.threatstack/.threatstack.state.json`) tracks loc
 5. Add `Organization :> Ruleset :> Rule` classes so we can simplify `state.State` by extending or overloading methods? Would make a lot of the logic clearer and easier to maintain.
     - This may also mean that we can define operators between organizations and rulesets? Maybe even rules, for backend-based diffs retrievable via API?
 6. Bash autocompletions would be cool.
+7. Ensure logging includes source and destination rule/ruleset IDs, so we know where `*-localonly` copies came from for reproducibility. Probably `DEBUG` loglevel.
 
 ### Development Notes
 

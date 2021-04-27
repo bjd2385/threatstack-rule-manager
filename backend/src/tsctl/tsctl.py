@@ -224,7 +224,7 @@ def main() -> None:
 
     group.add_argument(
         '--copy-ruleset', dest='copy_ruleset', nargs=1, type=str, metavar=('RULESET',),
-        help='(lazy) Copy an entire ruleset with a new name to the same workspace.'
+        help='(lazy) Copy an entire ruleset with a new name to the same organization.'
     )
 
     group.add_argument(
@@ -340,7 +340,7 @@ def main() -> None:
         organization.copy_ruleset(ruleset_id)
 
     elif options['copy_ruleset_out']:
-        ruleset_id, org_id = options['copy_ruleset_out'][0], read_json(options['copy_ruleset_out'][1])
+        ruleset_id, org_id = options['copy_ruleset_out']
         organization.copy_ruleset_out(ruleset_id, org_id)
 
     elif options['update_ruleset']:
