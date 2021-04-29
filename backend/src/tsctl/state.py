@@ -105,92 +105,63 @@ class State:
             api = API(**self.credentials)
 
             for ruleset_id in state['organizations'][self.org_id]:
-                ruleset_dir = self.organization_dir + ruleset_id + '/'
-
+                ruleset_dir = f'{self.organization_dir}{ruleset_id}/'
+                ruleset_data = read_json(ruleset_dir + 'ruleset.json')
                 if ruleset_id.endswith(self._postfix):
-                    # This ruleset doesn't exist yet. Save this local temp. ID, we'll modify the local filesystem
-                    # to reflect remote changes to these platform-assigned UUIDs from return of the POST request.
-                    ruleset_data = read_json(ruleset_dir + 'ruleset.json')
-                    ruleset_remote_data = api.post_ruleset(ruleset_data)
-                    ruleset_remote_id = ruleset_remote_data.pop('id')
-                    os.rename(ruleset_dir, self.organization_dir + ruleset_remote_id)
-                    ruleset_dir = self.organization_dir + ruleset_remote_id + '/'
-                    state['organizations'][self.org_id][ruleset_remote_id] = state['organizations'][self.org_id].pop(ruleset_id)
+                    # It's a new ruleset, the result of a copy or creation. We need to strip out any rules in the
+                    # JSON that are `-localonly` as well, because the platform won't know what to do with them.
+                    localonly_rules = ruleset_data['rules']
+                    ruleset_data['rules'] = []
+                    try:
+                        ruleset_response = api.post_ruleset(ruleset_data)
+                        new_ruleset_id = ruleset_response['id']
+                    except URLError:
+                        # Skip the rule requests, since there's no ruleset to post rules to. User will have to re-run.
+                        continue
 
-                    for rule_id in state['organizations'][self.org_id][ruleset_remote_id]['rules']:
-                        rule_dir = ruleset_dir + rule_id + '/'
+                    # Now let's go back and append all of these new rules to the ruleset, and update our local records
+                    # for effect.
+                    for rule_id in localonly_rules:
+                        rule_dir = f'{ruleset_dir}{rule_id}/'
                         rule_data = read_json(rule_dir + 'rule.json')
                         tags_data = read_json(rule_dir + 'tags.json')
-                        if rule_id.endswith(self._postfix):
-                            # Local only, make a POST request and update the directory structure to the
-                            # platform-assigned ID.
-                            if state['organizations'][self.org_id][ruleset_remote_id]['rules'][rule_id] == 'both':
-                                rule_remote_data = api.post_rule(ruleset_remote_id, rule_data)
-                                rule_remote_id = rule_remote_data.pop('id')
-                                os.rename(rule_dir, ruleset_dir + rule_remote_id)
-                                rule_dir = ruleset_dir + rule_remote_id
-                                tags_remote_data = api.post_tags(rule_remote_id, tags_data)
-                            elif state['organizations'][self.org_id][ruleset_remote_id]['rules'][rule_id] == 'rule':
-                                rule_remote_data = api.post_rule(ruleset_remote_id, rule_data)
-                                rule_remote_id = rule_remote_data.pop('id')
-                                os.rename(rule_dir, ruleset_dir + rule_remote_id)
-                                rule_dir = ruleset_dir + rule_remote_id
-                            else:
-                                raise ValueError('New rulesets can\'t contain new rules with only tag edits.')
-                        else:
-                            # Already has a platform-assigned ID, so we can make PUT requests to update.
-                            if state['organizations'][self.org_id][ruleset_remote_id]['rules'][rule_id] == 'both':
-                                api.put_rule(ruleset_remote_id, rule_id, rule_data)
-                                api.post_tags(rule_id, tags_data)
-                            elif state['organizations'][self.org_id][ruleset_remote_id]['rules'][rule_id] == 'rule':
-                                api.put_rule(ruleset_remote_id, rule_id, rule_data)
-                            elif state['organizations'][self.org_id][ruleset_remote_id]['rules'][rule_id] == 'tags':
-                                api.post_tags(rule_id, tags_data)
-                elif state['organizations'][self.org_id][ruleset_id]['modified'] == 'true':
-                    # PUT update this ruleset.
-                    data = read_json(ruleset_dir + 'ruleset.json')
-                    api.put_ruleset(ruleset_id, data)
 
-                    # We can iterate over rules on this ruleset in the same manner as above, but remove all references
-                    # to `ruleset_remote_id`, since our local ID is the same as the remote one.
-                    for rule_id in state['organizations'][self.org_id][ruleset_id]['rules']:
-                        rule_dir = ruleset_dir + rule_id + '/'
-                        rule_data = read_json(rule_dir + 'rule.json')
-                        tags_data = read_json(rule_dir + 'tags.json')
-                        if rule_id.endswith(self._postfix):
-                            # Local only, make a POST request and update the directory structure to the
-                            # platform-assigned ID.
-                            if state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'both':
-                                rule_remote_data = api.post_rule(ruleset_id, rule_data)
-                                rule_remote_id = rule_remote_data.pop('id')
-                                os.rename(rule_dir, ruleset_dir + rule_remote_id)
-                                rule_dir = ruleset_dir + rule_remote_id
-                                api.post_tags(rule_remote_id, tags_data)
-                            elif state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'rule':
-                                rule_remote_data = api.post_rule(ruleset_id, rule_data)
-                                rule_remote_id = rule_remote_data.pop('id')
-                                os.rename(rule_dir, ruleset_dir + rule_remote_id)
-                                rule_dir = ruleset_dir + rule_remote_id
-                            else:
-                                raise ValueError('New rulesets can\'t contain new rules with only tag edits.')
-                        else:
-                            # Already has a platform-assigned ID, so we can make PUT requests to update.
-                            if state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'both':
-                                api.put_rule(ruleset_id, rule_id, rule_data)
-                                api.post_tags(rule_id, tags_data)
-                            elif state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'rule':
-                                api.put_rule(ruleset_id, rule_id, rule_data)
-                            elif state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'tags':
-                                api.post_tags(rule_id, tags_data)
-                elif state['organizations'][self.org_id][ruleset_id]['modified'] == 'del':
-                    # DELETE this ruleset.
-                    api.delete_ruleset(ruleset_id)
+                        try:
+                            rule_response = api.post_rule(new_ruleset_id, rule_data)
+                            state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'tags'
+                        except URLError:
+                            # Request to update failed, remain tracking in state file.
+                            continue
 
-                # Remove this ruleset from the state since we've made all required local changes.
-                state = self._state_delete_ruleset(ruleset_id, state=state)
+                        new_rule_id = rule_response['id']
 
-            # Clear the organization from the state file, all changes have been pushed to the remote platform.
-            self._state_delete_organization(self.org_id)
+                        try:
+                            api.post_tags(new_rule_id, tags_data)
+                            state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
+                        except URLError:
+                            continue
+
+                        shutil.move(rule_dir, f'{ruleset_dir}{new_rule_id}/')
+                        ruleset_data['rules'].append(new_rule_id)
+
+                    new_ruleset_dir = f'{self.organization_dir}{new_ruleset_id}/'
+                    shutil.move(ruleset_dir, new_ruleset_dir)
+                    write_json(new_ruleset_dir + 'ruleset.json', ruleset_data)
+
+                    if len(state['organizations'][self.org_id][ruleset_id]['rules']) == 0:
+                        state['organizations'][self.org_id].pop(ruleset_id)
+                    else:
+                        # Update the state file to the new ruleset ID, there are still `-localonly` rules, be it a tags
+                        # endpoint update, or otherwise, that need to be updated on this new ruleset ID due to failures.
+                        state['organizations'][self.org_id][new_ruleset_id] = state['organizations'][self.org_id][ruleset_id]
+                        state['organizations'][self.org_id].pop(ruleset_id)
+                else:
+                    # It's a ruleset that already existed, but there could be `-localonly` (new) rules on it.
+                    localonly_rules = [rule_id for rule_id in ruleset_data['rules'] if rule_id.endswith(self._postfix)]
+                    ruleset_data['rules'] = [rule_id for rule_id in ruleset_data['rules'] if not rule_id.endswith(self._postfix)]
+
+            else:
+                self._state_delete_organization(state=state)
         else:
             # Nothing to do.
             return
@@ -373,7 +344,7 @@ class State:
     def _state_delete_ruleset(self, ruleset_id: str, recursive: bool =False, state: Optional[Dict] =None) -> Optional[Dict]:
         """
         Update the state file to reflect the actions of deleting a ruleset. This method should only be called by
-        _delete_ruleset or _state_delete_rule.
+        `_delete_ruleset` or `_state_delete_rule`.
 
         Args:
             ruleset_id: ruleset on which to set 'modified' to False.
