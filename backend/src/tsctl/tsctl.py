@@ -254,6 +254,7 @@ def main() -> None:
         help='Refresh local copy of the organization\'s rules and flush local state.'
     )
 
+    # FIXME: push does not update local ruleset rule lists.
     group.add_argument(
         '--push', dest='push', action='store_true',
         help='Push a workspace\'s state to remote state (the platform).'

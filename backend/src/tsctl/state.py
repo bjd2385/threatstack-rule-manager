@@ -387,43 +387,31 @@ class State:
         if write_state:
             state = read_json(self.state_file)
 
-        if self.org_id in state['organizations'] and ruleset_id in state['organizations'][self.org_id]:
-            if ruleset_id.lower().endswith(self._postfix.lower()):
-                # We're dealing with a local-only ruleset.
-                if state['organizations'][self.org_id][ruleset_id]['modified'] == 'true':
-                    if len(state['organizations'][self.org_id][ruleset_id]['rules']) == 0:
-                        state['organizations'][self.org_id].pop(ruleset_id)
-                    else:
-                        if recursive:
-                            state['organizations'][self.org_id].pop(ruleset_id)
-                        else:
-                            pass
+        if self.org_id in state['organizations']:
+            if ruleset_id in state['organizations'][self.org_id]:
+                if ruleset_id.endswith(self._postfix):
+                    state['organizations'][self.org_id].pop(ruleset_id)
+                    if len(state['organizations'][self.org_id]) == 0:
+                        state['organizations'].pop(self.org_id)
                 else:
-                    raise ValueError('local-only rulesets should only have a \'true\' modified value.')
+                    if state['organizations'][self.org_id][ruleset_id]['modified'] != 'del':
+                        state['organizations'][self.org_id][ruleset_id]['modified'] = 'del'
+                        state['organizations'][self.org_id][ruleset_id]['rules'] = {}
+                    else:
+                        assert(state['organizations'][self.org_id][ruleset_id]['rules'] == {})
             else:
-                # We're dealing with a local copy (potentially modified version) of a ruleset that also exists remotely.
-                if state['organizations'][self.org_id][ruleset_id]['modified'] == 'true':
-                    if len(state['organizations'][self.org_id][ruleset_id]['rules']) == 0:
-                        state['organization'][self.org_id].pop(ruleset_id)
-                    else:
-                        if recursive:
-                            state['organizations'][self.org_id][ruleset_id]['modified'] = 'del'
-                        else:
-                            pass
-                elif state['organizations'][self.org_id][ruleset_id]['modified'] == 'false':
-                    if len(state['organizations'][self.org_id][ruleset_id]['rules']) == 0:
-                        raise ValueError('unmodified rulesets cannot have zero rules.')
-                    else:
-
-                        if recursive:
-                            state['organizations'][self.org_id][ruleset_id]['modified'] = 'del'
-                        else:
-                            pass
-                elif state['organizations'][self.org_id][ruleset_id]['modified'] == 'del':
-                    assert(len(state['organizations'][self.org_id][ruleset_id]['rules']) == 0)
-                    pass
+                state['organizations'][self.org_id][ruleset_id] = {
+                    'modified': 'del',
+                    'rules': {}
+                }
         else:
-            pass
+            # We're starting with a clean state file, as far as this organization is concerned.
+            state['organizations'][self.org_id] = {
+                ruleset_id: {
+                    'modified': 'del',
+                    'rules': {}
+                }
+            }
 
         if write_state:
             write_json(self.state_file, state)
@@ -451,13 +439,23 @@ class State:
 
         if self.org_id in state['organizations']:
             if ruleset_id in state['organizations'][self.org_id]:
-                # FIXME: This is ... incredibly unreadable.
-                if rule_id not in state['organizations'][self.org_id][ruleset_id]['rules']:
+                if rule_id in state['organizations'][self.org_id][ruleset_id]['rules']:
+                    # This is horribly verbose, but I thought it better for debugging purposes to just spell out all
+                    # the possibilities here.
+                    if endpoint != 'del' and state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'del':
+                        raise ValueError('Cannot modify a deleted rule.')
+                    elif endpoint == 'tags' and state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'both':
+                        pass
+                    elif endpoint == 'rule' and state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'both':
+                        pass
+                    elif endpoint == 'both' and state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] != 'both':
+                        state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'both'
+                    elif endpoint == 'tags' and state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'rule':
+                        state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'both'
+                    elif endpoint == 'rule' and state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'tags':
+                        state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'both'
+                else:
                     state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = endpoint
-                elif (endpoint == 'both' and state['organizations'][self.org_id][ruleset_id]['rules'] != 'both') or \
-                     (endpoint == 'rule' and state['organizations'][self.org_id][ruleset_id]['rules'] == 'tags') or \
-                     (endpoint == 'tags' and state['organizations'][self.org_id][ruleset_id]['rules'] == 'rule'):
-                    state['organizations'][self.org_id][ruleset_id]['rules'] = 'both'
             else:
                 # Add the ruleset, then the rule thereunder with a recursive call to end up down a different code path.
                 state = self._state_add_ruleset(ruleset_id, action='false', state=state)
@@ -474,11 +472,12 @@ class State:
         else:
             return state
 
-    def _state_delete_rule(self, rule_id: str, state: Optional[Dict] =None) -> Optional[Dict]:
+    def _state_delete_rule(self, ruleset_id: str, rule_id: str, state: Optional[Dict] =None) -> Optional[Dict]:
         """
         Delete a modified rule from the state file.
 
         Args:
+            ruleset_id: the containing ruleset's ID.
             rule_id: rule ID to delete from local state file in the set organization.
             state: state file data to update. If not None, this function will commit changes to disk.
 
@@ -490,20 +489,30 @@ class State:
             state = read_json(self.state_file)
 
         if self.org_id in state['organizations']:
-            # Locate the rule within this organization; this is different than `_locate_rule`, which is a
-            # filesystem-based lookup.
-            for ruleset_id in state['organizations'][self.org_id]:
+            if ruleset_id in state['organizations'][self.org_id]:
                 if rule_id in state['organizations'][self.org_id][ruleset_id]['rules']:
-                    if len(state['organizations'][self.org_id][ruleset_id]['rules']) == 1 and state['organizations'][self.org_id][ruleset_id]['modified'] == 'false':
-                        # This is the only rule on this ruleset and the ruleset has not been modified; remove the
-                        # whole tree, recursively.
-                        state['organizations'][self.org_id].pop(ruleset_id)
-                        if len(state['organizations'][self.org_id]) == 0:
-                            self._state_delete_organization(state=state)
-                    else:
-                        # This is not the only rule or the containing ruleset has been modified; remove just the rule.
-                        state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
-                    break
+                    if state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] != 'del':
+                        state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'del'
+                else:
+                    state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'del'
+            else:
+                # The ruleset isn't yet tracked in state.
+                state['organizations'][self.org_id][ruleset_id] = {
+                    'modified': 'false',
+                    'rules': {
+                        rule_id: 'del'
+                    }
+                }
+        else:
+            # We're working with a blank state for this organization.
+            state['organizations'][self.org_id] = {
+                ruleset_id: {
+                    'modified': 'false',
+                    'rules': {
+                        rule_id: 'del'
+                    }
+                }
+            }
 
         if write_state:
             write_json(self.state_file, state)
@@ -618,7 +627,8 @@ class State:
         """
         ruleset_dir = f'{self.organization_dir}{ruleset_id}/'
         if not os.path.isdir(ruleset_dir):
-            raise ValueError(f'Ruleset {ruleset_id} doesn\'t exist.')
+            print(f'Ruleset {ruleset_id} doesn\'t exist.')
+            return
         write_json(ruleset_dir + 'ruleset.json', ruleset_data)
 
         # Update the state file to track these changes.
@@ -638,12 +648,13 @@ class State:
         """
         ruleset_dir = f'{self.organization_dir}{ruleset_id}/'
         if not os.path.isdir(ruleset_dir):
-            raise ValueError(f'Ruleset {ruleset_id} doesn\'t exist.')
+            print(f'Ruleset {ruleset_id} doesn\'t exist.')
+            return
 
         shutil.rmtree(ruleset_dir)
         self._state_delete_ruleset(ruleset_id, recursive=True)
 
-    def _create_rule(self, ruleset_id: str, rule_data: Dict, tags_data: Dict) -> str:
+    def _create_rule(self, ruleset_id: str, rule_data: Dict, tags_data: Dict) -> Optional[str]:
         """
         Create a local rule directory in a ruleset in an organization's directory.
 
@@ -655,8 +666,12 @@ class State:
         Returns:
             The created rule's ID.
         """
-        # Find a suitable (temporary, local) UUID for this rule; will be updated once the state file has been pushed.
         ruleset_dir = f'{self.organization_dir}{ruleset_id}/'
+        if not os.path.isdir(ruleset_dir):
+            print(f'Ruleset {ruleset_id} doesn\'t exist.')
+            return
+
+        # Find a suitable (temporary, local) UUID for this rule; will be updated once the state file has been pushed.
         while True:
             rule_id_gen = str(uuid4()) + self._postfix
             if rule_id_gen not in os.listdir(ruleset_dir):
@@ -667,6 +682,12 @@ class State:
 
         write_json(rule_dir + 'rule.json', rule_data)
         write_json(rule_dir + 'tags.json', tags_data)
+
+        # Update the ruleset's contained rule list. This is filtered on `push`, since the `-localonly` rules don't
+        # exist yet, so the platform would probably complain.
+        ruleset_data = read_json(ruleset_dir + 'ruleset.json')
+        ruleset_data['rules'].append(rule_id_gen)
+        write_json(ruleset_dir + 'ruleset.json', ruleset_data)
 
         # Update the state file to track these changes.
         self._state_add_rule(ruleset_id, rule_id_gen, endpoint='both')
@@ -707,8 +728,17 @@ class State:
             print(f'Rule ID \'{rule_id}\' not found in this organization. Please create before updating.')
             return False
 
+        # FIXME: indexing like this is probably going to cause IndexErrors down the road.
         shutil.rmtree(rule_dir)
-        self._state_delete_rule(rule_id)
+        ruleset_id = rule_dir.split('/')[-3]
+        ruleset_dir = f'{self.organization_dir}{ruleset_id}/'
+        self._state_delete_rule(ruleset_id, rule_id)
+
+        # Update the local ruleset's file to reflect this deletion. Rulesets are committed after rules to the platform.
+        ruleset_data = read_json(ruleset_dir + 'ruleset.json')
+        ruleset_data['rules'].remove(rule_id)
+        write_json(ruleset_dir + 'ruleset.json', ruleset_data)
+
         return True
 
     def lst(self, colorful: bool =False) -> None:
