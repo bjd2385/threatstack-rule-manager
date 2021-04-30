@@ -137,7 +137,10 @@ class State:
 
                         try:
                             api.post_tags(new_rule_id, tags_data)
-                            state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
+                            if state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'tags':
+                                state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
+                            else:
+                                state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'rule'
                         except URLError:
                             continue
 
@@ -160,8 +163,26 @@ class State:
                     localonly_rules = [rule_id for rule_id in ruleset_data['rules'] if rule_id.endswith(self._postfix)]
                     ruleset_data['rules'] = [rule_id for rule_id in ruleset_data['rules'] if not rule_id.endswith(self._postfix)]
 
-            else:
-                self._state_delete_organization(state=state)
+                    if state['organizations'][self.org_id][ruleset_id]['modified'] == 'true':
+                        try:
+                            api.post_ruleset(ruleset_data)
+                        except URLError:
+                            # Unlike the other branch, we don't need to skip the rules, because this ruleset does indeed
+                            # exist remotely, it just needs to be updated if the POST request fails.
+                            pass
+
+                        for rule_id in ruleset_data['rules']:
+                            try:
+                                rule_response = api.post_rule(new_ruleset_id, rule_data)
+                                state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'tags'
+                            except URLError:
+                                # Request to update failed, remain tracking in state file.
+                                continue
+                    elif state['organizations'][self.org_id][ruleset_id]['modified'] == 'del':
+                        ...
+                    else:
+                        # This ruleset is only in the state file because there are rule updates to push to the platform.
+                        ...
         else:
             # Nothing to do.
             return
