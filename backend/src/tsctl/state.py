@@ -129,11 +129,12 @@ class State:
                         try:
                             rule_response = api.post_rule(new_ruleset_id, rule_data)
                             state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'tags'
+                            new_rule_id = rule_response['id']
+                            shutil.move(rule_dir, f'{ruleset_dir}{new_rule_id}/')
+                            ruleset_data['rules'].append(new_rule_id)
                         except URLError:
                             # Request to update failed, remain tracking in state file.
                             continue
-
-                        new_rule_id = rule_response['id']
 
                         try:
                             api.post_tags(new_rule_id, tags_data)
@@ -143,9 +144,6 @@ class State:
                                 state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'rule'
                         except URLError:
                             continue
-
-                        shutil.move(rule_dir, f'{ruleset_dir}{new_rule_id}/')
-                        ruleset_data['rules'].append(new_rule_id)
 
                     new_ruleset_dir = f'{self.organization_dir}{new_ruleset_id}/'
                     shutil.move(ruleset_dir, new_ruleset_dir)
@@ -165,24 +163,91 @@ class State:
 
                     if state['organizations'][self.org_id][ruleset_id]['modified'] == 'true':
                         try:
-                            api.post_ruleset(ruleset_data)
+                            api.put_ruleset(ruleset_id, ruleset_data)
+                            state['organizations'][self.org_id][ruleset_id]['modified'] = 'false'
                         except URLError:
                             # Unlike the other branch, we don't need to skip the rules, because this ruleset does indeed
                             # exist remotely, it just needs to be updated if the POST request fails.
                             pass
 
-                        for rule_id in ruleset_data['rules']:
+                    elif state['organizations'][self.org_id][ruleset_id]['modified'] == 'del':
+                        try:
+                            api.delete_ruleset(ruleset_id)
+                            state['organizations'][self.org_id].pop(ruleset_id)
+                        except URLError:
+                            continue
+
+                    # Loop over new rules that need to be created in the platform, propagate their new IDs back.
+                    for rule_id in localonly_rules:
+                        rule_dir = f'{ruleset_dir}{rule_id}/'
+                        rule_data = read_json(rule_dir + 'rule.json')
+                        tags_data = read_json(rule_dir + 'tags.json')
+
+                        try:
+                            rule_response = api.post_rule(new_ruleset_id, rule_data)
+                            state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'tags'
+                            new_rule_id = rule_response['id']
+                            shutil.move(rule_dir, f'{ruleset_dir}{new_rule_id}/')
+                            ruleset_data['rules'].append(new_rule_id)
+                        except URLError:
+                            # Request to update failed, remain tracking in state file.
+                            continue
+
+                        try:
+                            api.post_tags(new_rule_id, tags_data)
+                            if state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'tags':
+                                state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
+                            else:
+                                state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'rule'
+                        except URLError:
+                            continue
+
+                    # Since there are new rule IDs, write this data to the ruleset for tracking.
+                    write_json(ruleset_dir + 'ruleset.json')
+
+                    # Now loop over rules that exist in the platform, but need to be modified in some fashion.
+                    for rule_id in state['organizations'][self.org_id][ruleset_id]['rules']:
+                        rule_dir = f'{ruleset_dir}{rule_id}/'
+
+                        if state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'rule':
+                            rule_data = read_json(rule_dir + 'rule.json')
                             try:
-                                rule_response = api.post_rule(new_ruleset_id, rule_data)
+                                api.put_rule(ruleset_id, rule_id, rule_data)
+                                state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
+                            except URLError:
+                                continue
+                        elif state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'tags':
+                            tags_data = read_json(rule_dir + 'tags.json')
+                            try:
+                                api.post_tags(rule_id, tags_data)
+                                state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
+                            except URLError:
+                                continue
+                        elif state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'both':
+                            rule_data = read_json(rule_dir + 'rule.json')
+                            tags_data = read_json(rule_dir + 'tags.json')
+
+                            try:
+                                api.put_rule(ruleset_id, rule_id, rule_data)
                                 state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'tags'
                             except URLError:
-                                # Request to update failed, remain tracking in state file.
                                 continue
-                    elif state['organizations'][self.org_id][ruleset_id]['modified'] == 'del':
-                        ...
-                    else:
-                        # This ruleset is only in the state file because there are rule updates to push to the platform.
-                        ...
+
+                            try:
+                                api.post_tags(rule_id, tags_data)
+                                state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
+                            except URLError:
+                                continue
+                        elif state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'del':
+                            try:
+                                api.delete_rule(ruleset_id, rule_id)
+                                state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
+                            except URLError:
+                                continue
+
+                    if state['organizations'][self.org_id][ruleset_id]['modified'] == 'false' and \
+                            len(state['organizations'][self.org_id][ruleset_id]['rules']) == 0:
+                        state['organizations'][self.org_id].pop(ruleset_id)
         else:
             # Nothing to do.
             return
@@ -483,8 +548,10 @@ class State:
         if self.org_id in state['organizations']:
             if ruleset_id in state['organizations'][self.org_id]:
                 if rule_id in state['organizations'][self.org_id][ruleset_id]['rules']:
-                    if state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] != 'del':
-                        state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'del'
+                    if rule_id.endswith(self._postfix):
+                        state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
+                    elif state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] != 'del':
+                            state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'del'
                 else:
                     state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'del'
             else:
