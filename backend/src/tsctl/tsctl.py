@@ -2,7 +2,7 @@
 A Threat Stack rule manager for your terminal.
 """
 
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Optional
 
 import logging
 import configparser
@@ -16,7 +16,7 @@ from .utils import read_json, write_json
 from . import __version__
 
 
-def config_parse() -> Tuple[bool, str, str, Dict[str, str]]:
+def config_parse() -> Tuple[str, str, Dict[str, str]]:
     """
     Initialize the state directory in the user's home directory and parse config options.
 
@@ -50,7 +50,6 @@ def config_parse() -> Tuple[bool, str, str, Dict[str, str]]:
     # Collect runtime options, such as laziness and log level.
     if 'RUNTIME' in parser.sections():
         runtime_section = parser['RUNTIME']
-        lazy_eval = runtime_section.get('LAZY_EVAL', fallback='True') == 'True'
         loglevel = runtime_section.get('LOGLEVEL', fallback='ERROR')
     else:
         print(f'Must define RUNTIME section in \'{conf}\'.')
@@ -112,7 +111,7 @@ def config_parse() -> Tuple[bool, str, str, Dict[str, str]]:
             'api_key': os.getenv('API_KEY')
         }
 
-    return lazy_eval, state_directory_path, state_file_path, credentials
+    return state_directory_path, state_file_path, credentials
 
 
 def vcs_gitignore(state_dir: str, state_file_name: str) -> None:
@@ -155,7 +154,7 @@ def workspace(state_dir: str, state_file: str, org_id: str, credentials: Dict[st
     return new_state
 
 
-def plan(state_file: str) -> None:
+def plan(state_file: str, show: bool =True) -> Optional[Dict]:
     """
     Output a nicely formatted plan of local state and the remote/platform state for the current workspace. This
     function basically just allows you to view the local state file that tracks what is to be pushed, based on the
@@ -163,16 +162,20 @@ def plan(state_file: str) -> None:
 
     Args:
         state_file: location of the state file.
+        show: if True, show the state file on stdout; otherwise, return the file.
 
     Returns:
         Nothing.
     """
-    with open(state_file, 'r') as f:
-        print(json.dumps(json.load(f), indent=2))
+    if show:
+        with open(state_file, 'r') as f:
+            print(json.dumps(json.load(f), indent=2))
+    else:
+        return read_json(state_file)
 
 
 def main() -> None:
-    lazy, state_directory, state_file, credentials = config_parse()
+    state_directory, state_file, credentials = config_parse()
     vcs_gitignore(state_directory, state_file.split('/')[-1])
 
     parser = ArgumentParser(description=__doc__,
