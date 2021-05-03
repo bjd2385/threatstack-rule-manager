@@ -2,7 +2,7 @@
 Provide a slightly-higher level interface between tsctl's state methods and calls and what will be the front end.
 """
 
-from typing import List, Dict
+from typing import Dict
 
 import tsctl
 
@@ -41,6 +41,137 @@ def plan() -> Dict:
         The state file, parsed as JSON.
     """
     return tsctl.tsctl.plan(state_file_path, show=False)
+
+
+@app.route('/create-rule', methods=['POST'])
+def create_rule() -> Dict:
+    """
+    Create a rule.
+
+    Returns:
+
+    """
+
+
+@app.route('/copy-rule', methods=['POST'])
+def copy_rule() -> Dict:
+    """
+    Copy a rule that already exists.
+
+    Returns:
+
+    """
+
+
+@app.route('/copy-rule-out', methods=['POST'])
+def copy_rule_out() -> Dict:
+    """
+    Copy a rule from this organization into a new one.
+
+    Returns:
+
+    """
+
+
+@app.route('/update-rule', methods=['POST'])
+def update_rule() -> Dict:
+    """
+    Update an existing rule in this workspace.
+
+    Returns:
+
+    """
+
+
+@app.route('/update-tags', methods=['POST'])
+def update_tags() -> Dict:
+    """
+    Update the tags on a rule in this workspace.
+
+    Returns:
+
+    """
+
+
+@app.route('/delete-rule', methods=['POST'])
+def delete_rule() -> Dict:
+    """
+    Delete a rule in this workspace.
+
+    Returns:
+
+    """
+
+
+@app.route('/get-rules', methods=['POST'])
+def get_rules() -> Dict:
+    """
+    Get the locally cached rules on a ruleset.
+
+    Returns:
+
+    """
+
+
+@app.route('/get-rulesets', methods=['GET'])
+def get_rulesets() -> Dict:
+    """
+    Get a list of locally cached rulesets on a ruleset.
+
+    Returns:
+
+    """
+
+
+@app.route('/create-ruleset', methods=['POST'])
+def create_ruleset() -> Dict:
+    """
+    Create a ruleset.
+
+    Returns:
+
+    """
+
+
+@app.route('/copy-ruleset', methods=['POST'])
+def copy_ruleset() -> Dict:
+    """
+    Copy a ruleset that already exists in the current workspace.
+
+    Returns:
+
+    """
+
+
+@app.route('/copy-ruleset-out', methods=['POST'])
+def copy_ruleset_out() -> Dict:
+    """
+    Copy a ruleset from this workspace to the next.
+
+    Returns:
+
+    """
+
+
+@app.route('/update-ruleset', methods=['POST'])
+def update_ruleset() -> Dict:
+    """
+    Update a ruleset with new data.
+
+    Returns:
+
+    """
+
+
+@app.route('/delete-ruleset', methods=['POST'])
+def delete_ruleset() -> Dict:
+    """
+    Delete a ruleset from the current workspace.
+
+    Returns:
+
+    """
+    
 
 
 if __name__ == '__main__':

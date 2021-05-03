@@ -185,7 +185,7 @@ class State:
                         tags_data = read_json(rule_dir + 'tags.json')
 
                         try:
-                            rule_response = api.post_rule(new_ruleset_id, rule_data)
+                            rule_response = api.post_rule(ruleset_id, rule_data)
                             state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'tags'
                             new_rule_id = rule_response['id']
                             shutil.move(rule_dir, f'{ruleset_dir}{new_rule_id}/')
