@@ -9,8 +9,9 @@ tsctl
 
 ```text
 $ tsctl -h
-usage: tsctl [-h] [--create-rule RULESET FILE] [--copy-rule RULE RULESET] [--copy-rule-out RULE RULESET ORGID] [--update-rule RULE FILE] [--update-tags RULE FILE] [--delete-rule RULE] [--create-ruleset FILE] [--copy-ruleset RULESET] [--copy-ruleset-out RULESET ORGID]
-             [--update-ruleset RULESET FILE] [--delete-ruleset RULESET] [-l] [-r] [--push] [--plan] [-w ORGID] [--colorful] [--version]
+usage: tsctl [-h] [--create-rule RULESET FILE] [--copy-rule RULE RULESET] [--copy-rule-out RULE RULESET ORGID] [--update-rule RULE FILE] [--update-tags RULE FILE]
+             [--delete-rule RULE] [--create-ruleset FILE] [--copy-ruleset RULESET] [--copy-ruleset-out RULESET ORGID] [--update-ruleset RULESET FILE]
+             [--delete-ruleset RULESET] [-l] [-r] [--push] [--plan] [-w ORGID] [--colorful] [--version]
 
 A Threat Stack rule manager for your terminal.
 
@@ -47,22 +48,27 @@ optional arguments:
   --version             Print the version of 'tsctl'.
 
 Remember to commit and push your changes on '/home/brandon/.threatstack/' to a git repository to maintain version control.
+
 ```
 
-### Installation
+### Run the Container
 
-#### Environment Variables
+To successfully start the container, you must define environment variables `USER_ID` and `API_KEY`, which will be used to interact with the Threat Stack platform.
+```shell
+$ docker run -it -d -e 'API_KEY=<your-key>' -e 'USER_ID=<your-key>' -p 8000:8000 --name ts-rule-manager rule-manager:latest
+814b24dbd26463a9ea96ca256f08bc5f9a8b566670c7b8ea42e362d2e7823163
+$ docker ps
+CONTAINER ID   IMAGE                 COMMAND         CREATED         STATUS        PORTS                    NAMES
+814b24dbd264   rule-manager:latest   "bash app.sh"   3 seconds ago   Up 1 second   0.0.0.0:8000->8000/tcp   ts-rule-manager
 
-* `API_KEY`:
-* `USER_ID`: 
-* `LOGLEVEL`: (optional, default: `INFO`)
-* `CONFIG_DIR`: (optional, default: `~/.threatstack`)
+```
+By default, the container listens on all interfaces on port `8000`. This may be modified and confined to a particular interface (or different port) by adjusting the Gunicorn `bind` setting in [gunicorn.py](src/api/gunicorn.py#L28)  
 
 ### FAQs
 
 #### What does the local state directory's structure look like?
 
-My current view is that the state directory will be structured like ~
+The state directory is structured like ~
 ```text
 ~ $ tree -a .threatstack/
 .threatstack/

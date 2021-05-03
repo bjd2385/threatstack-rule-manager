@@ -27,7 +27,8 @@ setup(
         'requests>=2.25.1',
         'urllib3>=1.26.4',
         'GitPython>=3.1.14',
-        'gunicorn>=20.1.0'
+        'gunicorn>=20.1.0',
+        'flask>=1.0.2'
     ],
     entry_points={
         'console_scripts': [
