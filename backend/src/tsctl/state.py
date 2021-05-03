@@ -619,18 +619,43 @@ class State:
         if ruleset_id in os.listdir(self.organization_dir):
             return self.organization_dir + ruleset_id + '/'
 
-    def _is_unique_rule_name(self, rule_id: str, ruleset_id: str) -> bool:
+    def _is_unique_rule_name(self, rule_name: str) -> bool:
         """
         Determine if a rule name is unique in this organization.
 
         Args:
-            rule_id: the rule ID to look up, extract the name field, and compare against other rules.
-            ruleset_id: ruleset ID that contains this rule.
+            rule_name: name to compare against the organization. If another match is found, return True.
 
         Returns:
             True if the name is unique, False otherwise.
         """
-        rule_dir = f'{self.organization_dir}{ruleset_id}/{rule_id}/'
+        for ruleset in os.listdir(self.organization_dir):
+            ruleset_dir = f'{self.organization_dir}{ruleset}/'
+            for rule in os.listdir(ruleset_dir):
+                rule_dir = f'{ruleset_dir}{rule}/'
+                rule_data = read_json(rule_dir + 'rule.json')
+                if rule_name == rule_data['name']:
+                    return False
+        else:
+            return True
+
+    def _is_unique_ruleset_name(self, ruleset_name: str) -> bool:
+        """
+        Determine if a ruleset name is unique against this organization.
+
+        Args:
+            ruleset_name: name to compare against the organization. If another match is found, return True.
+
+        Returns:
+            True if the ruleset name is unique, False otherwise.
+        """
+        for ruleset in os.listdir(self.organization_dir):
+            ruleset_dir = f'{self.organization_dir}{ruleset}/'
+            ruleset_data = read_json(ruleset_dir + 'ruleset.json')
+            if ruleset_name == ruleset_data['name']:
+                return False
+        else:
+            return True
 
     def _create_organization(self, org_id: str) -> Optional['State']:
         """
