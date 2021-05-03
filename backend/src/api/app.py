@@ -32,6 +32,17 @@ def workspace() -> Dict:
         abort(HTTPStatus.BAD_REQUEST)
 
 
+@app.route('/plan', methods=['GET'])
+def plan() -> Dict:
+    """
+    Get the current state file via tsctl.
+
+    Returns:
+        The state file, parsed as JSON.
+    """
+    return tsctl.tsctl.plan(state_file_path, show=False)
+
+
 if __name__ == '__main__':
     app.run(
         host='0.0.0.0',
