@@ -104,7 +104,7 @@ class State:
         if self.org_id in state['organizations']:
             api = API(**self.credentials)
 
-            for ruleset_id in state['organizations'][self.org_id]:
+            for ruleset_id in list(state['organizations'][self.org_id]):
                 ruleset_dir = f'{self.organization_dir}{ruleset_id}/'
                 ruleset_data = read_json(ruleset_dir + 'ruleset.json')
                 if ruleset_id.endswith(self._postfix):
@@ -174,6 +174,7 @@ class State:
                         try:
                             api.delete_ruleset(ruleset_id)
                             state['organizations'][self.org_id].pop(ruleset_id)
+                            continue
                         except URLError:
                             continue
 
@@ -203,10 +204,10 @@ class State:
                             continue
 
                     # Since there are new rule IDs, write this data to the ruleset for tracking.
-                    write_json(ruleset_dir + 'ruleset.json')
+                    write_json(ruleset_dir + 'ruleset.json', ruleset_data)
 
                     # Now loop over rules that exist in the platform, but need to be modified in some fashion.
-                    for rule_id in state['organizations'][self.org_id][ruleset_id]['rules']:
+                    for rule_id in list(state['organizations'][self.org_id][ruleset_id]['rules']):
                         rule_dir = f'{ruleset_dir}{rule_id}/'
 
                         if state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'rule':
@@ -248,6 +249,10 @@ class State:
                     if state['organizations'][self.org_id][ruleset_id]['modified'] == 'false' and \
                             len(state['organizations'][self.org_id][ruleset_id]['rules']) == 0:
                         state['organizations'][self.org_id].pop(ruleset_id)
+            else:
+                if len(state['organizations'][self.org_id]) == 0:
+                    state['organizations'].pop(self.org_id)
+                write_json(self.state_file, state)
         else:
             # Nothing to do.
             return
@@ -498,7 +503,7 @@ class State:
             if ruleset_id in state['organizations'][self.org_id]:
                 if rule_id in state['organizations'][self.org_id][ruleset_id]['rules']:
                     # This is horribly verbose, but I thought it better for debugging purposes to just spell out all
-                    # the possibilities here.
+                    # the possibilities here and the results.
                     if endpoint != 'del' and state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'del':
                         raise ValueError('Cannot modify a deleted rule.')
                     elif endpoint == 'tags' and state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'both':
@@ -613,6 +618,19 @@ class State:
         """
         if ruleset_id in os.listdir(self.organization_dir):
             return self.organization_dir + ruleset_id + '/'
+
+    def _is_unique_rule_name(self, rule_id: str, ruleset_id: str) -> bool:
+        """
+        Determine if a rule name is unique in this organization.
+
+        Args:
+            rule_id: the rule ID to look up, extract the name field, and compare against other rules.
+            ruleset_id: ruleset ID that contains this rule.
+
+        Returns:
+            True if the name is unique, False otherwise.
+        """
+        rule_dir = f'{self.organization_dir}{ruleset_id}/{rule_id}/'
 
     def _create_organization(self, org_id: str) -> Optional['State']:
         """
