@@ -1,5 +1,16 @@
 """
-These tests are designed to ensure that edits and changes to local state result in expected consequences, and also
-ensure a confidence level that we can push data then pull it and get the same data back from the platform. In other
-words, validates that these methods are safe to use and don't cause data loss or unintended results.
+Test that changes to the state file cause intended results.
+
+This is a good reference for jsonschema in Python -
+
+https://json-schema.org/understanding-json-schema/reference/object.html
 """
+
+import jsonschema
+import unittest
+import tsctl
+
+
+class TestStateCorrectness(unittest.TestCase):
+
+    ...
