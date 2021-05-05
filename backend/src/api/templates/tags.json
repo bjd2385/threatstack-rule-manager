@@ -1,5 +1,4 @@
 {
-  # Optional
   "inclusion": [
     {
       "source": "ec2",
@@ -7,7 +6,6 @@
       "value": "(Optional)"
     }
   ],
-  # Optional
   "exclusion": [
     {
       "source": "ec2",

@@ -8,12 +8,16 @@ import logging
 import configparser
 import os
 import json
+import tasks
 
 from argparse import ArgumentParser, MetavarTypeHelpFormatter
 from textwrap import dedent
 from .state import State
 from .utils import read_json, write_json
 from . import __version__
+
+
+logger = logging.getLogger(__name__)
 
 
 def config_parse() -> Tuple[str, str, Dict[str, str]]:
@@ -51,6 +55,7 @@ def config_parse() -> Tuple[str, str, Dict[str, str]]:
     if 'RUNTIME' in parser.sections():
         runtime_section = parser['RUNTIME']
         loglevel = runtime_section.get('LOGLEVEL', fallback='ERROR')
+        logger.setLevel(loglevel)
     else:
         print(f'Must define RUNTIME section in \'{conf}\'.')
         exit(1)
@@ -179,8 +184,18 @@ def main() -> None:
     vcs_gitignore(state_directory, state_file.split('/')[-1])
 
     parser = ArgumentParser(description=__doc__,
-                            formatter_class=MetavarTypeHelpFormatter,
                             epilog=f'Remember to commit and push your changes on \'{state_directory}\' to a git repository to maintain version control.')
+
+    parser.add_argument(
+        '--colorful', dest='color', action='store_true',
+        help='Add xterm coloring to output. Only works on certain commands (--list).'
+    )
+
+    parser.add_argument(
+        '--version', dest='version', action='store_true',
+        help='Print the version of \'tsctl\'.'
+    )
+
 
     # FIXME: there's probably a bug on calls to `add_mutually_exclusive_group` in that required arguments are evaluated
     #  or parser before discerning that more than one flag in the mutually exclusive group was defined.
@@ -273,22 +288,9 @@ def main() -> None:
         help='Set the organization ID within which you are working, automatically starts a refresh.'
     )
 
-    parser.add_argument(
-        '--colorful', dest='color', action='store_true',
-        help='Add xterm coloring to output. Only works on certain commands (--list).'
-    )
-
-    group.add_argument(
-        '--version', dest='version', action='store_true',
-        help='Print the version of \'tsctl\'.'
-    )
-
     options = vars(parser.parse_args())
 
-    if options['switch']:
-        org_id = options['switch']
-        workspace(state_directory, state_file, org_id, credentials)
-    elif options['version']:
+    if options['version']:
         print(f'tsctl v{__version__}')
         return
 

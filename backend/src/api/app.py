@@ -8,10 +8,13 @@ import tsctl
 
 from http import HTTPStatus
 from flask import Flask, redirect, url_for, request, abort
+from functools import lru_cache
 
 app = Flask(__name__)
 
 state_directory_path, state_file_path, credentials = tsctl.tsctl.config_parse()
+
+cached_read_json = lru_cache(maxsize=32)(tsctl.tsctl.read_json)
 
 
 @app.route('/workspace', methods=['GET', 'POST'])
@@ -30,6 +33,61 @@ def workspace() -> Dict:
         return tsctl.tsctl.plan(state_file_path, show=False)
     else:
         abort(HTTPStatus.BAD_REQUEST)
+
+
+@app.route('/templates/ruleset', methods=['GET'])
+def template_ruleset() -> Dict:
+    """
+    Get an empty ruleset template.
+
+    Returns:
+        The read template from disk.
+    """
+    return cached_read_json('templates/ruleset.json')
+
+
+@app.route('/templates/tags', methods=['GET'])
+def template_tags() -> Dict:
+    """
+    Get a skeleton tags JSON template.
+
+    Returns:
+        The read template from disk.
+    """
+    return cached_read_json('templates/tags.json')
+
+
+@app.route('/templates/rules/audit', methods=['GET'])
+def template_rules_audit() -> Dict:
+    """
+    Get a skeleton audit rule.
+
+    Returns:
+        The read template from disk.
+    """
+    return cached_read_json('templates/rules/audit.json')
+
+
+@app.route('/templates/rules/cloudtrail', methods=['GET'])
+def template_rules_cloudtrail() -> Dict:
+    """
+    Get a skeleton cloudtrail rule.
+
+    Returns:
+        The read template from disk.
+    """
+    return cached_read_json('templates/rules/cloudtrail.json')
+
+
+@app.route('/templates/rules/file', methods=['GET'])
+def template_rules_file() -> Dict:
+    """
+    Get a skeleton FIM rule.
+
+    Returns:
+        The read template from disk.
+    """
+    return cached_read_json('templates/rules/file.json')
 
 
 @app.route('/plan', methods=['GET'])
@@ -51,6 +109,7 @@ def create_rule() -> Dict:
     Returns:
 
     """
+
 
 
 @app.route('/copy-rule', methods=['POST'])
@@ -171,7 +230,7 @@ def delete_ruleset() -> Dict:
     Returns:
 
     """
-    
+
 
 
 if __name__ == '__main__':
