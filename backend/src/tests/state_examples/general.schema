@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "state",
+  "type": "object",
+  "properties": {
+    "organizations": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9]{24}$"
+      },
+      "properties": {
+        "type": "string",
+        "propertyNames": {
+          "pattern": "^[a-z0-9-]{36}$"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "rules": {
+              "type": "object",
+              "propertyNames": {
+                "pattern": "^[a-z0-9-]{36}$"
+              },
+              "properties": {
+                "type": "string",
+                "enum": [
+                  "rule",
+                  "tags",
+                  "both",
+                  "del"
+                ],
+                "additionalProperties": false
+              },
+              "minProperties": 0,
+              "additionalProperties": false
+            },
+            "modified": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "del"
+              ]
+            },
+            "additionalProperties": false
+          },
+          "required": [
+            "rules",
+            "modified"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "minProperties": 0
+    },
+    "workspace": {
+      "type": "string"
+    },
+    "additionalProperties": false
+  },
+  "required": [
+    "organizations",
+    "workspace"
+  ],
+  "additionalProperties": false
+}
