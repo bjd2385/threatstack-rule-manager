@@ -8,59 +8,59 @@
       "propertyNames": {
         "pattern": "^[a-z0-9]{24}$"
       },
-      "properties": {
-        "type": "string",
-        "propertyNames": {
-          "pattern": "^[a-z0-9-]{36}$"
-        },
-        "properties": {
+      "patternProperties": {
+        "": {
           "type": "object",
-          "properties": {
-            "rules": {
-              "type": "object",
-              "propertyNames": {
-                "pattern": "^[a-z0-9-]{36}$"
-              },
-              "properties": {
-                "type": "string",
-                "enum": [
-                  "rule",
-                  "tags",
-                  "both",
-                  "del"
-                ],
-                "additionalProperties": false
-              },
-              "minProperties": 0,
-              "additionalProperties": false
-            },
-            "modified": {
-              "type": "string",
-              "enum": [
-                "true",
-                "false",
-                "del"
-              ]
-            },
-            "additionalProperties": false
+          "propertyNames": {
+            "pattern": "^[a-z0-9-]{36,}$"
           },
-          "required": [
-            "rules",
-            "modified"
-          ],
-          "additionalProperties": false
+          "patternProperties": {
+            "": {
+              "type": "object",
+              "properties": {
+                "modified": {
+                  "type": "string",
+                  "enum": [
+                    "true",
+                    "false",
+                    "del"
+                  ]
+                },
+                "rules": {
+                  "type": "object",
+                  "propertyNames": {
+                    "pattern": "^[a-z0-9-]{36,}$"
+                  },
+                  "patternProperties": {
+                    "": {
+                      "type": "string",
+                      "enum": [
+                        "rule",
+                        "tags",
+                        "del",
+                        "both"
+                      ]
+                    }
+                  }
+                }
+              },
+              "required": [
+                "modified",
+                "rules"
+              ]
+            }
+          },
+          "minProperties": 1
         }
-      },
-      "minProperties": 0
+      }
     },
     "workspace": {
       "type": "string"
-    },
-    "additionalProperties": false
+    }
   },
+  "additionalProperties": false,
   "required": [
     "organizations",
     "workspace"
-  ],
-  "additionalProperties": false
+  ]
 }
