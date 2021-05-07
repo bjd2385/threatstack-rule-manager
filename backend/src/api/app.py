@@ -6,6 +6,7 @@ from typing import Dict
 
 import tsctl
 import os
+import json
 
 from http import HTTPStatus
 from flask import Flask, redirect, url_for, request, abort
@@ -29,12 +30,15 @@ def workspace() -> Dict:
     Returns:
         A list of ruleset dictionaries.
     """
-    if 'workspace' in request.form and request.method == 'POST':
-            ws = request.form['workspace']
-            tsctl.tsctl.workspace(state_directory_path, state_file_path, ws, credentials)
-            return tsctl.tsctl.plan(state_file_path, show=False)
-    elif request.method == 'GET':
+    request_data = request.get_json()
+    if request_data and 'workspace' in request_data and request_data['workspace'] and request.method == 'POST':
+        ws = request_data['workspace']
+        tsctl.tsctl.workspace(state_directory_path, state_file_path, ws, credentials)
         return tsctl.tsctl.plan(state_file_path, show=False)
+    elif request.method == 'GET':
+        plan = tsctl.tsctl.plan(state_file_path, show=False)
+        plan.pop('organizations')
+        return plan
     else:
         abort(HTTPStatus.BAD_REQUEST)
 
@@ -94,6 +98,28 @@ def template_rules_file() -> Dict:
     return cached_read_json(f'{here}templates/rules/file.json')
 
 
+@app.route('/templates/rules/threatintel', methods=['GET'])
+def template_threatintel_file() -> Dict:
+    """
+    Get a skeleton FIM rule.
+
+    Returns:
+        The read template from disk.
+    """
+    return cached_read_json(f'{here}templates/rules/threatintel.json')
+
+
+@app.route('/templates/tags', methods=['GET'])
+def template_tags_file() -> Dict:
+    """
+    Get a skeleton FIM rule.
+
+    Returns:
+        The read template from disk.
+    """
+    return cached_read_json(f'{here}templates/tags.json')
+
+
 @app.route('/plan', methods=['GET'])
 def plan() -> Dict:
     """
@@ -105,15 +131,48 @@ def plan() -> Dict:
     return tsctl.tsctl.plan(state_file_path, show=False)
 
 
-@app.route('/create-rule', methods=['POST'])
-def create_rule() -> Dict:
+@app.route('/create-rules', methods=['POST'])
+def create_rules() -> Dict:
     """
-    Create a rule.
+    Create a rule with a POST request to the platform. The payload should look like
+
+    {
+        "ruleset_id": "some_ruleset_id",
+        "data": {
+            [
+                "rule": {
+                    <rule data>
+                },
+                "tags": {
+                    <optional tags data>
+                }
+            ]
+        }
+    }
 
     Returns:
-
+        The updated state file, minus workspace, to show the update that took place.
     """
-
+    request_data = request.get_json()
+    if request_data and 'ruleset_id' in request_data and request_data['ruleset_id'] and 'data' in request_data and request_data['ruleset_id']:
+        ruleset_id = request_data['ruleset_id']
+        data = request_data['data']
+        org_id = tsctl.tsctl.plan(state_file_path, show=False)['workspace']
+        if not org_id:
+            return {
+                "error": "must set workspace before you can post new rules."
+            }
+        organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
+        for update in data:
+            rule = update['rule']
+            if 'tags' in update:
+                tags = update['tags']
+            else:
+                tags = None
+            organization.create_rule(ruleset_id, rule, tags)
+        return tsctl.tsctl.plan(state_file_path, show=False)['organizations']
+    else:
+        abort(HTTPStatus.BAD_REQUEST)
 
 
 @app.route('/copy-rule', methods=['POST'])
@@ -170,6 +229,16 @@ def delete_rule() -> Dict:
 def get_rules() -> Dict:
     """
     Get the locally cached rules on a ruleset.
+
+    Returns:
+
+    """
+
+
+@app.route('/laziness', methods=['POST'])
+def set_lazy() -> Dict:
+    """
+    Set the laziness factor of the backend.
 
     Returns:
 

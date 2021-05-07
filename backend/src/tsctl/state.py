@@ -112,11 +112,14 @@ class State:
                     # JSON that are `-localonly` as well, because the platform won't know what to do with them.
                     localonly_rules = ruleset_data['rules']
                     ruleset_data['rules'] = []
+                    logging.info(f'Creating ruleset: {ruleset_id}')
                     try:
                         ruleset_response = api.post_ruleset(ruleset_data)
                         new_ruleset_id = ruleset_response['id']
-                    except URLError:
+                        logging.debug(f'New ruleset ID: {new_ruleset_id}')
+                    except URLError as msg:
                         # Skip the rule requests, since there's no ruleset to post rules to. User will have to re-run.
+                        logging.error(f'Deleting ruleset: {msg}')
                         continue
 
                     # Now let's go back and append all of these new rules to the ruleset, and update our local records
@@ -126,13 +129,14 @@ class State:
                         rule_data = read_json(rule_dir + 'rule.json')
                         tags_data = read_json(rule_dir + 'tags.json')
 
+                        logging.info(f'Creating rule: {rule_id}')
                         try:
                             rule_response = api.post_rule(new_ruleset_id, rule_data)
                             state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'tags'
                             new_rule_id = rule_response['id']
                             shutil.move(rule_dir, f'{ruleset_dir}{new_rule_id}/')
                             ruleset_data['rules'].append(new_rule_id)
-                        except URLError:
+                        except URLError as msg:
                             # Request to update failed, remain tracking in state file.
                             continue
 

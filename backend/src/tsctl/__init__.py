@@ -5,3 +5,7 @@ __version__ = '0.0.1a1'
 lazy_eval = True
 
 from .tsctl import main
+
+import logging
+
+logger = logging.Logger

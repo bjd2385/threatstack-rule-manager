@@ -1,3 +1,28 @@
 {
-
+  "name": "",
+  "title": "",
+  "type": "",
+  "severityOfAlerts": 2,
+  "alertDescription": "Optional",
+  "aggregateFields": [],
+  "filter": "Optional",
+  "window": 86400,
+  "threshold": 1,
+  "suppressions": [],
+  "enabled": false,
+  "fileIntegrityPaths": [
+    {
+      "path": "",
+      "recursive": false
+    }
+  ],
+  "ignoreFiles": ["Optional"],
+  "eventsToMonitor": [
+    "OPEN",
+    "ALL",
+    "CLOSE",
+    "DELETE",
+    "MODIFY",
+    "CREATE"
+  ]
 }
