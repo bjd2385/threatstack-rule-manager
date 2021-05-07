@@ -47,12 +47,14 @@
               "required": [
                 "modified",
                 "rules"
-              ]
+              ],
+              "minProperties": 0
             }
           },
           "minProperties": 1
         }
-      }
+      },
+      "minProperties": 0
     },
     "workspace": {
       "type": "string"
