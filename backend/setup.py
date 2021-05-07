@@ -39,4 +39,5 @@ setup(
         'Bug Reports': 'support@threatstack.com',
         'Source': 'https://github.com/bjd2385/threatstack-tool'
     },
+    include_package_data=True
 )

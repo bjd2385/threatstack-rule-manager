@@ -1,0 +1,7 @@
+include *.sh
+include *.txt
+include Dockerfile
+include mypy.ini
+recursive-include src *.json
+recursive-include src *.py
+recursive-include src *.schema

@@ -5,10 +5,14 @@ Provide a slightly-higher level interface between tsctl's state methods and call
 from typing import Dict
 
 import tsctl
+import os
 
 from http import HTTPStatus
 from flask import Flask, redirect, url_for, request, abort
 from functools import lru_cache
+
+
+here = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 app = Flask(__name__)
 
@@ -43,7 +47,7 @@ def template_ruleset() -> Dict:
     Returns:
         The read template from disk.
     """
-    return cached_read_json('templates/ruleset.json')
+    return cached_read_json(f'{here}templates/ruleset.json')
 
 
 @app.route('/templates/tags', methods=['GET'])
@@ -54,7 +58,7 @@ def template_tags() -> Dict:
     Returns:
         The read template from disk.
     """
-    return cached_read_json('templates/tags.json')
+    return cached_read_json(f'{here}templates/tags.json')
 
 
 @app.route('/templates/rules/audit', methods=['GET'])
@@ -65,7 +69,7 @@ def template_rules_audit() -> Dict:
     Returns:
         The read template from disk.
     """
-    return cached_read_json('templates/rules/audit.json')
+    return cached_read_json(f'{here}templates/rules/audit.json')
 
 
 @app.route('/templates/rules/cloudtrail', methods=['GET'])
@@ -76,7 +80,7 @@ def template_rules_cloudtrail() -> Dict:
     Returns:
         The read template from disk.
     """
-    return cached_read_json('templates/rules/cloudtrail.json')
+    return cached_read_json(f'{here}templates/rules/cloudtrail.json')
 
 
 @app.route('/templates/rules/file', methods=['GET'])
@@ -87,7 +91,7 @@ def template_rules_file() -> Dict:
     Returns:
         The read template from disk.
     """
-    return cached_read_json('templates/rules/file.json')
+    return cached_read_json(f'{here}templates/rules/file.json')
 
 
 @app.route('/plan', methods=['GET'])
