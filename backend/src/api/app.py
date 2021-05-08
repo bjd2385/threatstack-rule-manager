@@ -2,11 +2,10 @@
 Provide a slightly-higher level interface between tsctl's state methods and calls and what will be the front end.
 """
 
-from typing import Dict
+from typing import Dict, List
 
 import tsctl
 import os
-import json
 
 from http import HTTPStatus
 from flask import Flask, redirect, url_for, request, abort
@@ -36,9 +35,9 @@ def workspace() -> Dict:
         tsctl.tsctl.workspace(state_directory_path, state_file_path, ws, credentials)
         return tsctl.tsctl.plan(state_file_path, show=False)
     elif request.method == 'GET':
-        plan = tsctl.tsctl.plan(state_file_path, show=False)
-        plan.pop('organizations')
-        return plan
+        state = tsctl.tsctl.plan(state_file_path, show=False)
+        state.pop('organizations')
+        return state
     else:
         abort(HTTPStatus.BAD_REQUEST)
 
@@ -131,6 +130,29 @@ def plan() -> Dict:
     return tsctl.tsctl.plan(state_file_path, show=False)
 
 
+@app.route('/list', methods=['POST'])
+def lst() -> Dict[str, Dict[str, Dict[str, str]]]:
+    """
+    Get a list of rulesets and rules under an organization. This method expects a payload that looks like
+
+    {
+        "organization": "<org_ID>"
+    }
+
+    in order to perform the lookup.
+
+    Returns:
+        A JSON object containing this organization's layout.
+    """
+    request_data = request.get_json()
+    if request_data and 'organization' in request_data:
+        org_id = request_data['organization']
+        organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
+        return organization.lst_api()
+    else:
+        abort(HTTPStatus.BAD_REQUEST)
+
+
 @app.route('/create-rules', methods=['POST'])
 def create_rules() -> Dict:
     """
@@ -141,7 +163,7 @@ def create_rules() -> Dict:
         "data": {
             [
                 "rule": {
-                    <rule data>
+                    <rule fields>
                 },
                 "tags": {
                     <optional tags data>
@@ -149,6 +171,8 @@ def create_rules() -> Dict:
             ]
         }
     }
+
+    Note that tags are optional, since this is the rule creation endpoint.
 
     Returns:
         The updated state file, minus workspace, to show the update that took place.
@@ -178,21 +202,26 @@ def create_rules() -> Dict:
 @app.route('/copy-rule', methods=['POST'])
 def copy_rule() -> Dict:
     """
-    Copy a rule that already exists.
+    Copy a rule that already exists to another ruleset within this organization, or another altogether. The payload
+    should look like
+
+    {
+        "destination_organization": "<optional_organization_ID>",
+        "rule_id": "<rule_ID>",
+        "rule_postfix": "<>"
+    }
+
+    where rule_postfix is the postfix to apply to the rule title (defaults to " - COPY"), since rule and ruleset titles
+    must be unique in the TS platform.
 
     Returns:
-
+        The updated state file, minus workspace, to show the update that took place.
     """
-
-
-@app.route('/copy-rule-out', methods=['POST'])
-def copy_rule_out() -> Dict:
-    """
-    Copy a rule from this organization into a new one.
-
-    Returns:
-
-    """
+    request_data = request.get_json()
+    if request_data and 'rule_id' in request_data:
+        ...
+    else:
+        abort(HTTPStatus.BAD_REQUEST)
 
 
 @app.route('/update-rule', methods=['POST'])

@@ -1,5 +1,9 @@
 {
-  "name": "",
-  "description": "",
-  "ruleIds": []
+  "optional": {
+  },
+  "required": {
+    "name": "",
+    "description": "",
+    "ruleIds": []
+  }
 }

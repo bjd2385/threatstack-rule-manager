@@ -98,6 +98,7 @@ The state file (by default, `~/.threatstack/.threatstack.state.json`) tracks loc
     - This may also mean that we can define operators between organizations and rulesets? Maybe even rules, for backend-based diffs retrievable via API?
 6. Bash autocompletions would be cool.
 7. Ensure logging includes source and destination rule/ruleset IDs, so we know where `*-localonly` copies came from for reproducibility. Probably `DEBUG` loglevel.
+8. Add a db for faster/better lookups than just plain directory traversal.
 
 ### Development Notes
 

@@ -4,7 +4,7 @@ makes changes. State file maintains a list of minimal change to update remote st
 count to sync local and platform states.
 """
 
-from typing import Dict, Optional, Callable, Any, Literal, Union
+from typing import Dict, Optional, Callable, Any, Literal, Union, List
 
 import logging
 import os
@@ -623,15 +623,15 @@ class State:
         if ruleset_id in os.listdir(self.organization_dir):
             return self.organization_dir + ruleset_id + '/'
 
-    def _is_unique_rule_name(self, rule_name: str) -> bool:
+    def rule_name_occurs(self, rule_name: str) -> bool:
         """
-        Determine if a rule name is unique in this organization.
+        Determine if a rule name occurs already in this organization.
 
         Args:
-            rule_name: name to compare against the organization. If another match is found, return True.
+            rule_name: name to compare against the organization. If a match is found, return True.
 
         Returns:
-            True if the name is unique, False otherwise.
+            True if the rule name already occurs, False otherwise.
         """
         for ruleset in os.listdir(self.organization_dir):
             ruleset_dir = f'{self.organization_dir}{ruleset}/'
@@ -639,27 +639,27 @@ class State:
                 rule_dir = f'{ruleset_dir}{rule}/'
                 rule_data = read_json(rule_dir + 'rule.json')
                 if rule_name == rule_data['name']:
-                    return False
+                    return True
         else:
-            return True
+            return False
 
-    def _is_unique_ruleset_name(self, ruleset_name: str) -> bool:
+    def ruleset_name_occurs(self, ruleset_name: str) -> bool:
         """
-        Determine if a ruleset name is unique against this organization.
+        Determine if a ruleset name occurs already in this organization.
 
         Args:
             ruleset_name: name to compare against the organization. If another match is found, return True.
 
         Returns:
-            True if the ruleset name is unique, False otherwise.
+            True if the ruleset name occurs, False otherwise.
         """
         for ruleset in os.listdir(self.organization_dir):
             ruleset_dir = f'{self.organization_dir}{ruleset}/'
             ruleset_data = read_json(ruleset_dir + 'ruleset.json')
             if ruleset_name == ruleset_data['name']:
-                return False
+                return True
         else:
-            return True
+            return False
 
     def _create_organization(self, org_id: str) -> Optional['State']:
         """
@@ -877,28 +877,59 @@ class State:
                 else:
                     print(f'({rule_id})')
 
+    def lst_api(self) -> Dict[str, Dict[str, Dict[str, str]]]:
+        """
+        Provide a list of this organization's rulesets and rules to an API call.
+
+        Returns:
+            A dictionary containing this organization's rules and rulesets.
+        """
+        ret = {
+            self.org_id: dict()
+        }
+        for ruleset_id in os.listdir(self.organization_dir):
+            ruleset_dir = self.organization_dir + ruleset_id + '/'
+            ruleset_data = read_json(ruleset_dir + 'ruleset.json')
+            ruleset_name = ruleset_data['name']
+            ruleset = {
+                ruleset_id: ruleset_name,
+                'rules': dict()
+            }
+            for rule_id in os.listdir(ruleset_dir):
+                rule_dir = ruleset_dir + rule_id + '/'
+                rule_data = read_json(rule_dir + 'rule.json')
+                rule_name = rule_data['name']
+                ruleset['rules'][rule_id] = rule_name
+            ret[self.org_id][ruleset_id] = ruleset
+        return ret
+
     # Remote state management API.
 
     @lazy
-    def create_ruleset(self, ruleset_data: Union[str, Dict]) -> str:
+    def create_ruleset(self, ruleset_data: Union[str, Dict], name_postfix: str =' - COPY') -> str:
         """
         Create a new ruleset in the current workspace.
 
         Args:
             ruleset_data: ruleset data file with which to create the new ruleset. Must be in POSTable format.
+            name_postfix: optionally, specify a rule name postfix to append to guarantee name uniqueness; defaults to
+                ' - COPY'.
 
         Returns:
-            The name of the created ruleset, since it's probably generated.
+            The new ID of the ruleset, since it's probably locally generated.
         """
         if ruleset_data is str:
             data = read_json(ruleset_data)
         else:
             data = ruleset_data
 
+        while self.ruleset_name_occurs(data['name']):
+            data['name'] += name_postfix
+
         return self._create_ruleset(ruleset_data=data)
 
     @lazy
-    def create_rule(self, ruleset_id: str, rule_data: Union[str, Dict], tags_data: Optional[Union[str, Dict]] =None) -> str:
+    def create_rule(self, ruleset_id: str, rule_data: Union[str, Dict], tags_data: Optional[Union[str, Dict]] =None, name_postfix: str =' - COPY') -> str:
         """
         Create a new rule from a JSON file in the current workspace.
 
@@ -906,6 +937,8 @@ class State:
             ruleset_id: ruleset under which to create the new rule.
             rule_data: rule data file from which to create the new rule. Must conform to the POST rule schema.
             tags_data: optionally, specify the tags this new rule should have.
+            name_postfix: optionally, specify a rule name postfix to append to guarantee uniqueness; defaults to
+                ' - COPY'.
 
         Returns:
             The name of the created rule, since it's probably generated.
@@ -921,6 +954,9 @@ class State:
             tags = read_json(tags_data)
         else:
             tags = tags_data
+
+        while self.rule_name_occurs(data['name']):
+            data['name'] += name_postfix
 
         return self._create_rule(
             ruleset_id=ruleset_id,
@@ -951,13 +987,14 @@ class State:
         return self
 
     @lazy
-    def copy_rule(self, rule_id: str, ruleset_id: str) -> 'State':
+    def copy_rule(self, rule_id: str, ruleset_id: str, postfix: Optional[str] =None) -> 'State':
         """
         Copy an existing rule in the current workspace to another ruleset in the same workspace.
 
         Args:
             rule_id: rule ID to copy.
             ruleset_id: destination ruleset to copy to; must reside in the current organization.
+            postfix: optionally, specify a postfix to apply to the copied rule's name to ensure uniqueness.
 
         Returns:
             A State instance.
@@ -974,6 +1011,8 @@ class State:
 
         rule_data = read_json(rule_dir + 'rule.json')
         tags_data = read_json(rule_dir + 'tags.json')
+
+
 
         # Create a new rule in the destination ruleset, now that we've confirmed everything exists.
         self._create_rule(ruleset_id, rule_data, tags_data)
