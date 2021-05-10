@@ -2,10 +2,11 @@
 Provide a slightly-higher level interface between tsctl's state methods and calls and what will be the front end.
 """
 
-from typing import Dict, List
+from typing import Dict, Union
 
 import tsctl
 import os
+import json
 
 from http import HTTPStatus
 from flask import Flask, redirect, url_for, request, abort
@@ -33,11 +34,13 @@ def workspace() -> Dict:
     if request_data and 'workspace' in request_data and request_data['workspace'] and request.method == 'POST':
         ws = request_data['workspace']
         tsctl.tsctl.workspace(state_directory_path, state_file_path, ws, credentials)
-        return tsctl.tsctl.plan(state_file_path, show=False)
+        ret = tsctl.tsctl.plan(state_file_path, show=False)
+        ret.pop('organizations')
+        return ret
     elif request.method == 'GET':
-        state = tsctl.tsctl.plan(state_file_path, show=False)
-        state.pop('organizations')
-        return state
+        ret = tsctl.tsctl.plan(state_file_path, show=False)
+        ret.pop('organizations')
+        return ret
     else:
         abort(HTTPStatus.BAD_REQUEST)
 
@@ -130,27 +133,53 @@ def plan() -> Dict:
     return tsctl.tsctl.plan(state_file_path, show=False)
 
 
-@app.route('/list', methods=['POST'])
-def lst() -> Dict[str, Dict[str, Dict[str, str]]]:
+@app.route('/list', methods=['GET', 'POST'])
+def lst() -> Union[Dict[str, Dict[str, Dict[str, str]]], Dict[str, str]]:
     """
     Get a list of rulesets and rules under an organization. This method expects a payload that looks like
 
     {
-        "organization": "<org_ID>"
+        "organization": "<optional_org_ID>",
+        "tags": false  # optional
     }
 
-    in order to perform the lookup.
+    in order to perform the lookup if a POST request is made. It also does not update the state file. If tags are
+    requested (optionally), then return that data as well, not just the rule names.
 
     Returns:
         A JSON object containing this organization's layout.
     """
-    request_data = request.get_json()
-    if request_data and 'organization' in request_data:
-        org_id = request_data['organization']
-        organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
-        return organization.lst_api()
-    else:
-        abort(HTTPStatus.BAD_REQUEST)
+    if request.method == 'GET':
+        org_id = tsctl.tsctl.plan(state_file_path, show=False)['workspace']
+        if not org_id:
+            return {
+                "error": "must set workspace before you can post new rules, or try a POST request on this endpoint."
+            }
+        print(type(request.args), dir(request.args))
+        request_args = json.loads(str(request.args))
+        if 'tags' in request_args and request_args['tags'] is not bool:
+            return {
+                "error": "'list' endpoint expected a boolean value ('true' or 'false') for 'tags' arg."
+            }
+        elif 'tags' in request_args:
+            tags = request_args['tags']
+            organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
+            return organization.lst_api(tags=tags)
+        else:
+            organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
+            return organization.lst_api()
+
+    elif request.method == 'POST':
+        request_data = request.get_json()
+        if request_data and 'organization' in request_data:
+            org_id = request_data['organization']
+            organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
+            if 'tags' in request_data:
+                return organization.lst_api(tags=request_data['tags'])
+            else:
+                return organization.lst_api()
+
+    abort(HTTPStatus.BAD_REQUEST)
 
 
 @app.route('/create-rules', methods=['POST'])
@@ -208,7 +237,7 @@ def copy_rule() -> Dict:
     {
         "destination_organization": "<optional_organization_ID>",
         "rule_id": "<rule_ID>",
-        "rule_postfix": "<>"
+        "rule_postfix": "<optional_postfix>"
     }
 
     where rule_postfix is the postfix to apply to the rule title (defaults to " - COPY"), since rule and ruleset titles
@@ -218,10 +247,6 @@ def copy_rule() -> Dict:
         The updated state file, minus workspace, to show the update that took place.
     """
     request_data = request.get_json()
-    if request_data and 'rule_id' in request_data:
-        ...
-    else:
-        abort(HTTPStatus.BAD_REQUEST)
 
 
 @app.route('/update-rule', methods=['POST'])

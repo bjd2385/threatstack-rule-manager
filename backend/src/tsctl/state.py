@@ -877,29 +877,46 @@ class State:
                 else:
                     print(f'({rule_id})')
 
-    def lst_api(self) -> Dict[str, Dict[str, Dict[str, str]]]:
+    def lst_api(self, tags: bool =False) -> Optional[Dict[str, Dict[str, Dict[str, str]]]]:
         """
         Provide a list of this organization's rulesets and rules to an API call.
+
+        Args:
+            tags: if True, return rules' tags as well, not just their names.
 
         Returns:
             A dictionary containing this organization's rules and rulesets.
         """
+        ruleset_list = os.listdir(self.organization_dir)
+
+        # Ensure this organization isn't going through a refresh.
+        if '.remote' in ruleset_list:
+            return None
+
         ret = {
             self.org_id: dict()
         }
-        for ruleset_id in os.listdir(self.organization_dir):
+
+        for ruleset_id in ruleset_list:
             ruleset_dir = self.organization_dir + ruleset_id + '/'
             ruleset_data = read_json(ruleset_dir + 'ruleset.json')
             ruleset_name = ruleset_data['name']
             ruleset = {
-                ruleset_id: ruleset_name,
+                'name': ruleset_name,
                 'rules': dict()
             }
             for rule_id in os.listdir(ruleset_dir):
-                rule_dir = ruleset_dir + rule_id + '/'
-                rule_data = read_json(rule_dir + 'rule.json')
-                rule_name = rule_data['name']
-                ruleset['rules'][rule_id] = rule_name
+                if 'ruleset.json' not in rule_id:
+                    rule_dir = ruleset_dir + rule_id + '/'
+                    rule_data = read_json(rule_dir + 'rule.json')
+
+                    rule_name = rule_data['name']
+                    ruleset['rules'][rule_id] = {
+                        'name': rule_name
+                    }
+                    if tags:
+                        ruleset['rules'][rule_id]['tags'] = read_json(rule_dir + 'tags.json')
+
             ret[self.org_id][ruleset_id] = ruleset
         return ret
 
