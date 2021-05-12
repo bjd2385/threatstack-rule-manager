@@ -108,7 +108,7 @@ def template_threatintel_file() -> Dict:
     Returns:
         The read template from disk.
     """
-    return cached_read_json(f'{here}templates/rules/threatintel.json')
+    return cached_read_json(f'{here}templates/rules/threat_intel.json')
 
 
 @app.route('/templates/tags', methods=['GET'])
@@ -133,6 +133,42 @@ def plan() -> Dict:
     return tsctl.tsctl.plan(state_file_path, show=False)
 
 
+@app.route('/refresh', methods=['POST'])
+def refresh() -> Dict:
+    """
+    Refresh an organization's local state copy (or pull it down preemptively). Expects a similar payload as other
+    endpoints:
+
+    {
+        "organizations": [
+            "<org_ids>",
+            ...
+        ]
+    }
+
+    Returns:
+        The state file, and if the refresh was successful, the organization's state will be cleared (hence not present).
+    """
+    request_data = request.get_json()
+    if request_data and 'organizations' in request_data and request_data['organizations']:
+        for org_id in request_data['organizations']:
+            organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
+            organization.refresh()
+        return tsctl.tsctl.plan(state_file_path, show=False)
+    else:
+        abort(HTTPStatus.BAD_REQUEST)
+
+
+@app.route('/push', methods=['POST'])
+def push() -> Dict:
+    """
+    Push an organization's local state changes onto the (remote) Threat Stack platform.
+
+    Returns:
+        The state file, and if the push was successful, the organization's state will be cleared (hence not present).
+    """
+
+
 @app.route('/list', methods=['GET', 'POST'])
 def lst() -> Union[Dict[str, Dict[str, Dict[str, str]]], Dict[str, str]]:
     """
@@ -140,11 +176,11 @@ def lst() -> Union[Dict[str, Dict[str, Dict[str, str]]], Dict[str, str]]:
 
     {
         "organization": "<optional_org_ID>",
-        "tags": false  # optional
+        "tags": false  # Not optional.
     }
 
     in order to perform the lookup if a POST request is made. It also does not update the state file. If tags are
-    requested (optionally), then return that data as well, not just the rule names.
+    requested, then return that data as well, not just the rule names.
 
     Returns:
         A JSON object containing this organization's layout.
@@ -155,19 +191,24 @@ def lst() -> Union[Dict[str, Dict[str, Dict[str, str]]], Dict[str, str]]:
             return {
                 "error": "must set workspace before you can post new rules, or try a POST request on this endpoint."
             }
-        print(type(request.args), dir(request.args))
-        request_args = json.loads(str(request.args))
-        if 'tags' in request_args and request_args['tags'] is not bool:
+        request_args = request.args.to_dict()
+        if 'tags' not in request_args:
             return {
                 "error": "'list' endpoint expected a boolean value ('true' or 'false') for 'tags' arg."
             }
-        elif 'tags' in request_args:
-            tags = request_args['tags']
-            organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
-            return organization.lst_api(tags=tags)
+
+        tags = request_args['tags']
+
+        # Make a silly conversion, since I don't see any way to make this cleaner.
+        if tags == 'true':
+            tags = True
+        elif tags == 'false':
+            tags = False
         else:
-            organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
-            return organization.lst_api()
+            abort(HTTPStatus.BAD_REQUEST)
+
+        organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
+        return organization.lst_api(tags=tags)
 
     elif request.method == 'POST':
         request_data = request.get_json()
@@ -175,7 +216,8 @@ def lst() -> Union[Dict[str, Dict[str, Dict[str, str]]], Dict[str, str]]:
             org_id = request_data['organization']
             organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
             if 'tags' in request_data:
-                return organization.lst_api(tags=request_data['tags'])
+                if request_data['tags'] is bool:
+                    return organization.lst_api(tags=request_data['tags'])
             else:
                 return organization.lst_api()
 
@@ -223,7 +265,7 @@ def create_rules() -> Dict:
             else:
                 tags = None
             organization.create_rule(ruleset_id, rule, tags)
-        return tsctl.tsctl.plan(state_file_path, show=False)['organizations']
+        return tsctl.tsctl.plan(state_file_path, show=False)['organizations'][org_id]
     else:
         abort(HTTPStatus.BAD_REQUEST)
 

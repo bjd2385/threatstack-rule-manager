@@ -636,6 +636,8 @@ class State:
         for ruleset in os.listdir(self.organization_dir):
             ruleset_dir = f'{self.organization_dir}{ruleset}/'
             for rule in os.listdir(ruleset_dir):
+                if 'ruleset.json' in rule:
+                    continue
                 rule_dir = f'{ruleset_dir}{rule}/'
                 rule_data = read_json(rule_dir + 'rule.json')
                 if rule_name == rule_data['name']:
