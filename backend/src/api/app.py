@@ -162,11 +162,27 @@ def refresh() -> Dict:
 @app.route('/push', methods=['POST'])
 def push() -> Dict:
     """
-    Push an organization's local state changes onto the (remote) Threat Stack platform.
+    Push organizations' local state changes onto the (remote) Threat Stack platform. Expects a similar payload as other
+    endpoints:
+
+    {
+        "organizations": [
+            "<org_ids>",
+            ...
+        ]
+    }
 
     Returns:
         The state file, and if the push was successful, the organization's state will be cleared (hence not present).
     """
+    request_data = request.get_json()
+    if request_data and 'organizations' in request_data and request_data['organizations']:
+        for org_id in request_data['organizations']:
+            organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
+            organization.push()
+        return tsctl.tsctl.plan(state_file_path, show=False)
+    else:
+        abort(HTTPStatus.BAD_REQUEST)
 
 
 @app.route('/list', methods=['GET', 'POST'])
@@ -405,5 +421,5 @@ def delete_ruleset() -> Dict:
 if __name__ == '__main__':
     app.run(
         host='0.0.0.0',
-        port='8000'
+        port=8000
     )
