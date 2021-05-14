@@ -305,9 +305,11 @@ def copy_rule() -> Dict:
         The updated state file, minus workspace, to show the update that took place.
     """
     request_data = request.get_json()
+    if request_data and all(field in request_data for field in ['destination_organization', 'rule_id', 'rule_postfix']):
+        ...
 
 
-@app.route('/update-rule', methods=['POST'])
+@app.route('/update-rule', methods=['PUT'])
 def update_rule() -> Dict:
     """
     Update an existing rule in this workspace.
