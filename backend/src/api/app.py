@@ -419,38 +419,51 @@ def delete_rule() -> Dict:
     Delete a rule in this workspace.
 
     Returns:
-
+        The deleted rule's ID.
     """
+    request_data = request.get_json()
+    if request_data and _ensure_args(request_data, 'rule_id'):
+        org_id = tsctl.tsctl.plan(state_file_path, show=False)['workspace']
+        if not org_id:
+            return {
+                "error": "must set workspace before you can delete a rule."
+            }
+        rule_id = request_data['rule_id']
+        organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
+        organization.delete_rule(rule_id)
+        return request_data
+    else:
+        abort(HTTPStatus.BAD_REQUEST)
 
 
-@app.route('/get-rules', methods=['POST'])
+@app.route('/rules', methods=['POST'])
 def get_rules() -> Dict:
     """
-    Get the locally cached rules on a ruleset.
+    Get the local copy of rules on a ruleset. Expects a ruleset ID.
+
+    {
+        "ruleset_id": "<ruleset ID>"
+    }
 
     Returns:
         A list of rules' data.
     """
+    request_data = request.get_json()
+    if request_data and _ensure_args(request_data, 'ruleset_id'):
+        org_id = tsctl.tsctl.plan(state_file_path, show=False)['workspace']
+    else:
+        abort(HTTPStatus.BAD_REQUEST)
 
 
-@app.route('/laziness', methods=['POST'])
-def set_lazy() -> Dict:
-    """
-    Set the laziness factor of the backend.
-
-    Returns:
-
-    """
-
-
-@app.route('/get-rulesets', methods=['GET'])
+@app.route('/rulesets', methods=['GET'])
 def get_rulesets() -> Dict:
     """
-    Get a list of locally cached rulesets on a ruleset.
+    Get a list of locally cached rulesets in this workspace.
 
     Returns:
 
     """
+
 
 
 @app.route('/create-ruleset', methods=['POST'])
