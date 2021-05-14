@@ -925,7 +925,7 @@ class State:
     # Remote state management API.
 
     @lazy
-    def create_ruleset(self, ruleset_data: Union[str, Dict], name_postfix: str =' - COPY') -> str:
+    def create_ruleset(self, ruleset_data: Union[str, Dict], name_postfix: Optional[str] =None) -> str:
         """
         Create a new ruleset in the current workspace.
 
@@ -943,12 +943,15 @@ class State:
             data = ruleset_data
 
         while self.ruleset_name_occurs(data['name']):
-            data['name'] += name_postfix
+            if name_postfix:
+                data['name'] += name_postfix
+            else:
+                data['name'] += ' - COPY'
 
         return self._create_ruleset(ruleset_data=data)
 
     @lazy
-    def create_rule(self, ruleset_id: str, rule_data: Union[str, Dict], tags_data: Optional[Union[str, Dict]] =None, name_postfix: str =' - COPY') -> str:
+    def create_rule(self, ruleset_id: str, rule_data: Union[str, Dict], tags_data: Optional[Union[str, Dict]] =None, name_postfix: Optional[str] =None) -> str:
         """
         Create a new rule from a JSON file in the current workspace.
 
@@ -975,7 +978,10 @@ class State:
             tags = tags_data
 
         while self.rule_name_occurs(data['name']):
-            data['name'] += name_postfix
+            if name_postfix:
+                data['name'] += name_postfix
+            else:
+                data['name'] += ' - COPY'
 
         return self._create_rule(
             ruleset_id=ruleset_id,
@@ -1013,7 +1019,7 @@ class State:
         Args:
             rule_id: rule ID to copy.
             ruleset_id: destination ruleset to copy to; must reside in the current organization.
-            postfix: optionally, specify a postfix to apply to the copied rule's name to ensure uniqueness.
+            postfix: optionally, specify a postfix to apply to the copied rule's name to ensure uniqueness. Defaults to ' - COPY'.
 
         Returns:
             A State instance.
@@ -1031,7 +1037,10 @@ class State:
         rule_data = read_json(rule_dir + 'rule.json')
         tags_data = read_json(rule_dir + 'tags.json')
 
-
+        if postfix:
+            rule_data['name'] += postfix
+        else:
+            rule_data['name'] += ' - COPY'
 
         # Create a new rule in the destination ruleset, now that we've confirmed everything exists.
         self._create_rule(ruleset_id, rule_data, tags_data)
@@ -1039,7 +1048,7 @@ class State:
         return self
 
     @lazy
-    def copy_rule_out(self, rule_id: str, ruleset_id: str, org_id: str) -> 'State':
+    def copy_rule_out(self, rule_id: str, ruleset_id: str, org_id: str, postfix: Optional[str] =None) -> 'State':
         """
         Copy an existing rule in the current workspace to another ruleset in a different workspace. This
         will trip a refresh action against the next workspace prior to copying if it doesn't already exist.
@@ -1048,6 +1057,7 @@ class State:
             rule_id: rule ID to copy.
             ruleset_id: destination ruleset in a different workspace to copy this rule to.
             org_id: a different workspace to copy this rule to.
+            postfix: optionally, specify a postfix to apply to the copied rule's name to ensure uniqueness. Defaults to ' - COPY'
 
         Returns:
             A State instance.
@@ -1066,18 +1076,24 @@ class State:
         rule_data = read_json(rule_dir + 'rule.json')
         tags_data = read_json(rule_dir + 'tags.json')
 
+        if postfix:
+            rule_data['name'] += postfix
+        else:
+            rule_data['name'] += ' - COPY'
+
         # Create a local copy of this rule in the destination organization.
         alt_state.create_rule(ruleset_id, rule_data, tags_data)
 
         return self
 
     @lazy
-    def copy_ruleset(self, ruleset_id: str) -> 'State':
+    def copy_ruleset(self, ruleset_id: str, postfix: Optional[str] =None) -> 'State':
         """
         Copy an entire ruleset to a new one, intra-org.
 
         Args:
             ruleset_id: the ruleset ID to copy.
+            postfix: optionally, specify a postfix to apply to the copied ruleset's name to ensure uniqueness.
 
         Returns:
             A State instance.
@@ -1086,8 +1102,15 @@ class State:
             print(f'Ruleset ID \'{ruleset_id}\' not found in this organization. Please create before updating.')
             return self
 
+        ruleset_data = read_json(ruleset_dir + 'ruleset.json')
+        if postfix:
+            ruleset_data['name'] += postfix
+        else:
+            ruleset_data['name'] += ' - COPY'
+
         new_ruleset_id = self.create_ruleset(
-            read_json(ruleset_dir + 'ruleset.json')
+            ruleset_data,
+            postfix
         )
 
         # TODO: implement Ruleset and Organization iterators? Would make traversal easier. May come with Rule and
@@ -1105,7 +1128,7 @@ class State:
         return self
 
     @lazy
-    def copy_ruleset_out(self, ruleset_id: str, org_id: str) -> 'State':
+    def copy_ruleset_out(self, ruleset_id: str, org_id: str, postfix: Optional[str] =None) -> 'State':
         """
         Copy an entire ruleset to a new organization. Process looks like,
         1) create a new State instance around this destination organization,
@@ -1116,6 +1139,7 @@ class State:
         Args:
             ruleset_id: ruleset to copy to the new organization.
             org_id: the destination organization to copy these rules and rulesets into.
+            postfix: optionally, specify a postfix to apply to the ruleset's name to ensure uniqueness.
 
         Returns:
             A State instance.
@@ -1125,8 +1149,17 @@ class State:
             return self
 
         alt_org = State(self.state_dir, self.state_file, self.user_id, self.api_key, org_id=org_id)
+
+        ruleset_data = read_json(ruleset_dir + 'ruleset.json')
+
+        if postfix:
+            ruleset_data['name'] += postfix
+        else:
+            ruleset_data['name'] += ' - COPY'
+
         alt_ruleset_id = alt_org.create_ruleset(
-            read_json(ruleset_dir + 'ruleset.json')
+            ruleset_data,
+            postfix
         )
 
         # TODO: implement Ruleset and Organization iterators? Would make traversal easier. May come with Rule and
