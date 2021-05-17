@@ -6,7 +6,6 @@ from typing import Dict, Union
 
 import tsctl
 import os
-import json
 
 from http import HTTPStatus
 from flask import Flask, redirect, url_for, request, abort
@@ -92,7 +91,7 @@ def template_rules_audit() -> Dict:
     Returns:
         The read template from disk.
     """
-    return cached_read_json(f'{here}templates/rules/audit.json')
+    return cached_read_json(f'{here}templates/rules/host.json')
 
 
 @app.route('/templates/rules/cloudtrail', methods=['GET'])
@@ -436,23 +435,17 @@ def delete_rule() -> Dict:
         abort(HTTPStatus.BAD_REQUEST)
 
 
-@app.route('/rules', methods=['POST'])
+@app.route('/rules', methods=['GET'])
 def get_rules() -> Dict:
     """
-    Get the local copy of rules on a ruleset. Expects a ruleset ID.
-
-    {
-        "ruleset_id": "<ruleset ID>"
-    }
+    Get rules by either ruleset or a list of rule IDs to return from the organization.
 
     Returns:
         A list of rules' data.
     """
-    request_data = request.get_json()
-    if request_data and _ensure_args(request_data, 'ruleset_id'):
-        org_id = tsctl.tsctl.plan(state_file_path, show=False)['workspace']
-    else:
-        abort(HTTPStatus.BAD_REQUEST)
+    args = request.args.to_dict()
+
+    print(args)
 
 
 @app.route('/rulesets', methods=['GET'])

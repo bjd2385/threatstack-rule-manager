@@ -9,7 +9,7 @@ import configparser
 import os
 import json
 
-from argparse import ArgumentParser, MetavarTypeHelpFormatter
+from argparse import ArgumentParser
 from textwrap import dedent
 from .state import State
 from .utils import read_json, write_json

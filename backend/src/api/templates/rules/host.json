@@ -1,0 +1,17 @@
+{
+  "optional": {
+    "alertDescription": "",
+    "aggregateFields": [
+      {
+        "host": ""
+      }
+    ]
+  },
+  "required": {
+    "name": "",
+    "title": "",
+    "type": "host",
+    "severityOfAlerts": 3,
+    "filter": ""
+  }
+}
