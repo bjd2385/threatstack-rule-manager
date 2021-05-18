@@ -14,7 +14,7 @@ import os
 
 state_directory, state_file, credentials = tsctl.tsctl.config_parse()
 
-# Retrieve from GitHub secrets.
+# Retrieve from GitHub secrets or .env secrets.
 my_org_id = os.getenv('BRANDON_ORG_ID')
 alt_org_id = os.getenv('SUPPORT_TEAM_ORG_ID')
 

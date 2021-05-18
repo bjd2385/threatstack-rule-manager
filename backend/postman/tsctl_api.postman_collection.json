@@ -1,0 +1,287 @@
+{
+	"info": {
+		"_postman_id": "4ed86603-0944-4c87-9b2e-cfa485b96f33",
+		"name": "tsctl_api",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "templates",
+			"item": [
+				{
+					"name": "Get audit rule",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8000/templates/rules/audit",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"templates",
+								"rules",
+								"audit"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get cloudtrail rule",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8000/templates/rules/cloudtrail",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"templates",
+								"rules",
+								"cloudtrail"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get threatintel rule",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8000/templates/rules/threatintel",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"templates",
+								"rules",
+								"threatintel"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get file rule",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8000/templates/rules/file",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"templates",
+								"rules",
+								"file"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "List Rules",
+			"item": [
+				{
+					"name": "Get rule list",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8000/list?tags=true",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"list"
+							],
+							"query": [
+								{
+									"key": "tags",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get rule list on new organization ID",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"organization\": \"{{org_id}}\",\n    \"tags\": true\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8000/list",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"list"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Git",
+			"item": [
+				{
+					"name": "Clone",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"directory\": \"~/.threatstack/\",\n    \"gitURL\": \"{{git_url}}\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8000/clone",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"clone"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Get plan",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/plan",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"plan"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get workspace",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/workspace",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"workspace"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Set workspace",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"workspace\": \"{{org_id}}\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/workspace",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"workspace"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create rule",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"ruleset_id\": \"{{ruleset_id}}\",\n    \"data\": [\n        {\n            \"tags\": {},\n            \"rule\": {\n                \"name\": \"Threat Intelligence: Outbound Connection (Connects) to WAN\",\n                \"type\": \"ThreatIntel\",\n                \"title\": \"Threat Intelligence: Outbound Connection (Connects) to WAN: {{threatintel_reason}} to {{ip}}\",\n                \"severityOfAlerts\": 1,\n                \"alertDescription\": \"This alerts when an outbound connection is seen connecting to an IP flagged by our threat intelligence.  Outbound connections could indicate malware callback or a compromised host.  IP and domain reputations change over time, but this should investigated.\",\n                \"aggregateFields\": [\n                    \"threatintel_reason\",\n                    \"ip\"\n                ],\n                \"filter\": \"type =\\\"connect\\\" and event_type=\\\"threatintel\\\"\",\n                \"window\": 3600,\n                \"threshold\": 1,\n                \"suppressions\": [\n                    \"(ip starts_with \\\"10.\\\" OR ip starts_with \\\"192.168.\\\" or ip starts_with \\\"172.16.\\\" or ip starts_with \\\"172.17.\\\" or ip starts_with \\\"172.18.\\\" or ip starts_with \\\"172.19.\\\" or ip starts_with \\\"172.20.\\\" or ip starts_with \\\"172.21.\\\" or ip starts_with \\\"172.22.\\\" or ip starts_with \\\"172.23.\\\" or ip starts_with \\\"172.24.\\\" or ip starts_with \\\"172.25.\\\" or ip starts_with \\\"172.26.\\\" or ip starts_with \\\"172.27.\\\" or ip starts_with \\\"172.28.\\\" or ip starts_with \\\"172.29.\\\" or ip starts_with \\\"172.30.\\\" or ip starts_with \\\"172.31.\\\" or ip starts_with \\\"fd\\\" or ip starts_with \\\"::ffff:10.\\\" OR ip starts_with \\\"::ffff:192.168.\\\" or ip starts_with \\\"::ffff:172.16.\\\" or ip starts_with \\\"::ffff:172.17.\\\" or ip starts_with \\\"::ffff:172.18.\\\" or ip starts_with \\\"::ffff:172.19.\\\" or ip starts_with \\\"::ffff:172.20.\\\" or ip starts_with \\\"::ffff:172.21.\\\" or ip starts_with \\\"::ffff:172.22.\\\" or ip starts_with \\\"::ffff:172.23.\\\" or ip starts_with \\\"::ffff:172.24.\\\" or ip starts_with \\\"::ffff:172.25.\\\" or ip starts_with \\\"::ffff:172.26.\\\" or ip starts_with \\\"::ffff:172.27.\\\" or ip starts_with \\\"::ffff:172.28.\\\" or ip starts_with \\\"::ffff:172.29.\\\" or ip starts_with \\\"::ffff:172.30.\\\" or ip starts_with \\\"::ffff:172.31.\\\" or ip starts_with \\\"fd\\\")\",\n                    \"port = 0\"\n                ],\n                \"enabled\": true\n            }\n        }\n    ]\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/create-rules",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"create-rules"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

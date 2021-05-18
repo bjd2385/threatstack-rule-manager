@@ -10,6 +10,7 @@ import os
 from http import HTTPStatus
 from flask import Flask, redirect, url_for, request, abort
 from functools import lru_cache
+from repo.organizations import initialize_repo
 
 
 here = os.path.dirname(os.path.realpath(__file__)) + '/'
@@ -166,13 +167,47 @@ def refresh() -> Dict:
         The state file, and if the refresh was successful, the organization's state will be cleared (hence not present).
     """
     request_data = request.get_json()
-    if request_data and _ensure_args(request_data, 'organizations') and request_data['organizations']:
+    if request_data and _ensure_args(request_data, 'organizations'):
         for org_id in request_data['organizations']:
             organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
             organization.refresh()
         return tsctl.tsctl.plan(state_file_path, show=False)
     else:
         abort(HTTPStatus.BAD_REQUEST)
+
+
+@app.route('/clone', methods=['POST'])
+def clone_git() -> Dict:
+    """
+    Clone out a Git repo. Expects an object like
+
+    {
+        "directory": "",
+        "gitURL": ""
+    }
+
+    Returns:
+        The contents of the directory once it has been cloned.
+    """
+    request_data = request.get_json()
+    if request_data and _ensure_args(request_data, 'directory', 'git-url'):
+        directory = request_data['directory']
+        git_repo = request_data['gitURL']
+        return {
+            "organizations": initialize_repo(directory, git_repo)
+        }
+    else:
+        abort(HTTPStatus.BAD_REQUEST)
+
+
+@app.route('/refresh-git', methods=[''])
+def refresh_git() -> Dict:
+    """
+    Essentially the same as `git push -u origin master`, followed by
+
+    Returns:
+
+    """
 
 
 @app.route('/push', methods=['POST'])
