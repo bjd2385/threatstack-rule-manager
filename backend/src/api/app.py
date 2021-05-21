@@ -10,7 +10,7 @@ import os
 from http import HTTPStatus
 from flask import Flask, redirect, url_for, request, abort
 from functools import lru_cache
-from repo.organizations import initialize_repo
+from repo.actions import initialize_repo
 
 
 here = os.path.dirname(os.path.realpath(__file__)) + '/'

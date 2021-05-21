@@ -185,17 +185,6 @@ def main() -> None:
     parser = ArgumentParser(description=__doc__,
                             epilog=f'Remember to commit and push your changes on \'{state_directory}\' to a git repository to maintain version control.')
 
-    parser.add_argument(
-        '--colorful', dest='color', action='store_true',
-        help='Add xterm coloring to output. Only works on certain commands (--list).'
-    )
-
-    parser.add_argument(
-        '--version', dest='version', action='store_true',
-        help='Print the version of \'tsctl\'.'
-    )
-
-
     # FIXME: there's probably a bug on calls to `add_mutually_exclusive_group` in that required arguments are evaluated
     #  or parser before discerning that more than one flag in the mutually exclusive group was defined.
     group = parser.add_mutually_exclusive_group(required=True)
@@ -260,6 +249,16 @@ def main() -> None:
     )
 
     # Workspace options and optional options.
+
+    group.add_argument(
+        '--colorful', dest='color', action='store_true',
+        help='Add xterm coloring to output. Only works on certain commands (--list).'
+    )
+
+    group.add_argument(
+        '--version', dest='version', action='store_true',
+        help='Print the version of \'tsctl\'.'
+    )
 
     group.add_argument(
         '-l', '--list', dest='list', action='store_true',
