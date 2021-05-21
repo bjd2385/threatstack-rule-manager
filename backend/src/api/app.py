@@ -313,7 +313,9 @@ def rule() -> Dict:
         }
     }
 
-    • or, delete a rule.
+    • or, delete a rule, querying by ID(s).
+
+        ?rule_id=<rule_id>&rule_id=<rule_id>
 
     where rule_postfix is the postfix to apply to the rule title (defaults to " - COPY"), since rule and ruleset titles
     must be unique in the TS platform.

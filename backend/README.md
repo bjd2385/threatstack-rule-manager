@@ -66,7 +66,7 @@ By default, the container listens on all interfaces on port `8000`. This may be 
 
 ### API
 
-Running the container starts the Flask-based API. Please view the [public documentation](https://documenter.getpostman.com/view/8527107/TzXtHfYj) (via Postman) and import the Postman library (in [postman/](postman/tsctl%20backend%20Flask%20API.postman_collection.json)) to test requests against the API directly. Or, start the frontend container to interact visually with the API.
+Running the container starts the Flask-based API. Please view the [public documentation](https://documenter.getpostman.com/view/8527107/TzXtHfYj) (via Postman) and import the Postman library (in [src/tests/postman/](src/tests/postman/tsctl%20backend%20Flask%20API.postman_collection.json)) to test requests against the API directly. Or, start the frontend container to interact visually with the API.
 
 ### FAQs
 
