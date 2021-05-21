@@ -332,7 +332,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"\"\n}",
+							"raw": "{\n    \"name\": \"\",\n    \"description\": \"\",\n    \"ruleIds\": []\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -584,7 +584,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"destination_organization\": \"\",\n    \"rulesets\": [\n        {\n            \"ruleset_id\": \"{{ruleset_id}}\",\n            \"ruleset_postfix\": \" - COPY\"\n        }\n    ]\n}",
+							"raw": "{\n    \"destination_organization\": \"\",\n    \"rulesets\": [\n        {\n            \"ruleset_id\": \"{{ruleset_id}}\",\n            \"ruleset_postfix\": \" - COPY\"\n        }\n    ],\n    \"rules\": [],\n    \"tags\": []\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -612,7 +612,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"destination_organization\": \"\",\n    \"rules\": [\n        {\n            \"rule_id\": \"\",\n            \"rule_postfix\": \"\"\n        }\n    ]\n}",
+							"raw": "{\n    \"destination_organization\": \"\",\n    \"rules\": [\n        {\n            \"rule_id\": \"\",\n            \"rule_postfix\": \"\"\n        }\n    ],\n    \"rulesets\": [],\n    \"tags\": []\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -640,7 +640,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"destination_organization\": \"{{destination_organization}}\",\n    \"tags\": [\n        {\n            \"src_rule_id\": \"\",\n            \"dst_rule_id\": \"\"\n        },\n        {\n            \"src_rule_id\": \"\",\n            \"dst_ruleset_id\": \"\"\n        }\n    ]\n}",
+							"raw": "{\n    \"destination_organization\": \"{{destination_organization}}\",\n    \"tags\": [\n        {\n            \"src_rule_id\": \"\",\n            \"dst_rule_id\": \"\"\n        },\n        {\n            \"src_rule_id\": \"\",\n            \"dst_ruleset_id\": \"\"\n        }\n    ],\n    \"rulesets\": [],\n    \"rules\": []\n}",
 							"options": {
 								"raw": {
 									"language": "json"
