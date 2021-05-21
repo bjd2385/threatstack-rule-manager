@@ -20,3 +20,28 @@ def initialize_repo(directory: str, git_url: str) -> Optional[List]:
     """
     repo = Git(directory)
     print(repo.clone(git_url))
+
+
+def checkout_branch(branch_name: str) -> Optional[str]:
+    """
+    Check out/create a new branch for the SE to work in.
+
+    Args:
+        branch_name: required string name for the branch to be created.
+
+    Returns:
+        The current branch's name.
+    """
+    ...
+
+
+def push_branch(branch_name: str) -> Optional[List]:
+    """
+
+
+    Args:
+        branch_name:
+
+    Returns:
+
+    """

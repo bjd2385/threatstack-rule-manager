@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "4ed86603-0944-4c87-9b2e-cfa485b96f33",
-		"name": "tsctl_api",
+		"name": "tsctl backend Flask API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -9,88 +9,143 @@
 			"name": "templates",
 			"item": [
 				{
-					"name": "Get audit rule",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:8000/templates/rules/audit",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8000",
-							"path": [
-								"templates",
-								"rules",
-								"audit"
-							]
+					"name": "Rules",
+					"item": [
+						{
+							"name": "Get audit rule",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/templates/rules/audit",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"templates",
+										"rules",
+										"audit"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get cloudtrail rule",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/templates/rules/cloudtrail",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"templates",
+										"rules",
+										"cloudtrail"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get threatintel rule",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/templates/rules/threatintel",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"templates",
+										"rules",
+										"threatintel"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get file rule",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/templates/rules/file",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"templates",
+										"rules",
+										"file"
+									]
+								}
+							},
+							"response": []
 						}
-					},
-					"response": []
+					]
 				},
 				{
-					"name": "Get cloudtrail rule",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:8000/templates/rules/cloudtrail",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8000",
-							"path": [
-								"templates",
-								"rules",
-								"cloudtrail"
-							]
+					"name": "Rulesets",
+					"item": [
+						{
+							"name": "Ruleset",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/templates/ruleset",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"templates",
+										"ruleset"
+									]
+								}
+							},
+							"response": []
 						}
-					},
-					"response": []
+					]
 				},
 				{
-					"name": "Get threatintel rule",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:8000/templates/rules/threatintel",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8000",
-							"path": [
-								"templates",
-								"rules",
-								"threatintel"
-							]
+					"name": "Tags",
+					"item": [
+						{
+							"name": "Tags",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/templates/tags",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"templates",
+										"tags"
+									]
+								}
+							},
+							"response": []
 						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get file rule",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:8000/templates/rules/file",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8000",
-							"path": [
-								"templates",
-								"rules",
-								"file"
-							]
-						}
-					},
-					"response": []
+					]
 				}
 			]
 		},
@@ -173,31 +228,6 @@
 			"name": "Rules",
 			"item": [
 				{
-					"name": "Tags",
-					"item": [
-						{
-							"name": "Update tags",
-							"request": {
-								"method": "PUT",
-								"header": [],
-								"url": {
-									"raw": "http://localhost:8000/rule/tags",
-									"protocol": "http",
-									"host": [
-										"localhost"
-									],
-									"port": "8000",
-									"path": [
-										"rule",
-										"tags"
-									]
-								}
-							},
-							"response": []
-						}
-					]
-				},
-				{
 					"name": "List rules",
 					"request": {
 						"method": "GET",
@@ -252,29 +282,6 @@
 					"response": []
 				},
 				{
-					"name": "Copy rule",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"destination_organization\": \"\",\n    \"rules\": [\n        {\n            \"rule_id\": \"\",\n            \"rule_postfix\": \"\"\n        }\n    ],\n    \"rulesets\": [\n        {\n            \"ruleset_id\": \"\",\n            \"ruleset_postfix\": \"\"\n        }\n    ]\n}"
-						},
-						"url": {
-							"raw": "http://localhost:8000/copy",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8000",
-							"path": [
-								"copy"
-							]
-						}
-					},
-					"response": []
-				},
-				{
 					"name": "Delete rule",
 					"request": {
 						"method": "DELETE",
@@ -322,6 +329,15 @@
 					"request": {
 						"method": "POST",
 						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:8000/ruleset",
 							"protocol": "http",
@@ -331,25 +347,6 @@
 							"port": "8000",
 							"path": [
 								"ruleset"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Copy ruleset",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:8000/copy",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8000",
-							"path": [
-								"copy"
 							]
 						}
 					},
@@ -361,7 +358,7 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/ruleset",
+							"raw": "http://localhost:8000/ruleset?ruleset={{ruleset_id}}",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -369,6 +366,12 @@
 							"port": "8000",
 							"path": [
 								"ruleset"
+							],
+							"query": [
+								{
+									"key": "ruleset",
+									"value": "{{ruleset_id}}"
+								}
 							]
 						}
 					},
@@ -489,6 +492,15 @@
 					"request": {
 						"method": "POST",
 						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"organizations\": [\n        {{org_id}}\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "http://localhost:8000/refresh",
 							"protocol": "http",
@@ -506,22 +518,146 @@
 				{
 					"name": "Push",
 					"request": {
-						"method": "GET",
+						"method": "POST",
 						"header": [],
-						"url": null
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"organizations\": [\n        {{org_id}}\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8000/push",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"push"
+							]
+						}
 					},
 					"response": []
 				}
 			]
 		},
 		{
-			"name": "Copy rule and ruleset to a different destination organization",
-			"request": {
-				"method": "POST",
-				"header": [],
-				"url": null
-			},
-			"response": []
+			"name": "Copying Rules, Rule Tags, and Rulesets",
+			"item": [
+				{
+					"name": "Copy rule and ruleset to a different destination organization",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"destination_organization\": \"\",\n    \"rules\": [\n        {\n            \"rule_id\": \"{{rule_id}}\",\n            \"rule_postfix\": \" - COPY\"\n        }\n    ],\n    \"rulesets\": [\n        {\n            \"ruleset_id\": \"{{ruleset_id}}\",\n            \"ruleset_postfix\": \" - COPY\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8000/copy",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"copy"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Copy ruleset",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"destination_organization\": \"\",\n    \"rulesets\": [\n        {\n            \"ruleset_id\": \"{{ruleset_id}}\",\n            \"ruleset_postfix\": \" - COPY\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8000/copy",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"copy"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Copy rule",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"destination_organization\": \"\",\n    \"rules\": [\n        {\n            \"rule_id\": \"\",\n            \"rule_postfix\": \"\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8000/copy",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"copy"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tags",
+			"item": [
+				{
+					"name": "Update tags",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8000/rule/tags",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"rule",
+								"tags"
+							]
+						}
+					},
+					"response": []
+				}
+			]
 		}
 	]
 }
