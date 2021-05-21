@@ -269,8 +269,8 @@ def copy() -> Dict:
         "tags": [
             {
                 "src_rule_id": "<src_rule_id>",
-                "dst_rule_id": "<dst_rule_id>",
-                "dst_ruleset_id": "<dst_ruleset_id>"
+                <"dst_rule_id": "<dst_rule_id>",
+                "dst_ruleset_id": "<dst_ruleset_id>">
             }
         ]
     }

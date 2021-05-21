@@ -97,12 +97,11 @@ The state file (by default, `~/.threatstack/.threatstack.state.json`) tracks loc
 1. Add an `(MODIFIED)` string to the end of rules or rulesets under `--list` output that reside in the state file and will be pushed.
 2. Add proper `logging` implementation throughout the module.
 3. Set up GH Actions when the repo is tagged.
-4. Simplify state.State rule and ruleset directory lookups by adding some new methods.
-5. Add `Organization :> Ruleset :> Rule` classes so we can simplify `state.State` by extending or overloading methods? Would make a lot of the logic clearer and easier to maintain.
+4. Add `Organization :> Ruleset :> Rule` classes so we can simplify `state.State` by extending or overloading methods? Would make a lot of the logic clearer and easier to maintain.
     - This may also mean that we can define operators between organizations and rulesets? Maybe even rules, for backend-based diffs retrievable via API?
-6. Bash autocompletions would be cool.
-7. Ensure logging includes source and destination rule/ruleset IDs, so we know where `*-localonly` copies came from for reproducibility. Probably `DEBUG` loglevel.
-8. Add a db for faster/better lookups than just plain directory traversal.
+5. Bash autocompletions would be cool.
+6. Ensure logging includes source and destination rule/ruleset IDs, so we know where `*-localonly` copies came from for reproducibility. Probably `DEBUG` loglevel.
+7. Add a db for faster/better lookups than just plain directory traversal.
 
 ### Development Notes
 
