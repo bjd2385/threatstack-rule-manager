@@ -2,6 +2,7 @@
 	"info": {
 		"_postman_id": "4ed86603-0944-4c87-9b2e-cfa485b96f33",
 		"name": "tsctl backend Flask API",
+		"description": "This collection of requests is intended to document the full extend of the methods available to the frontend for data retrieval and actions over the lifecycle of rule and ruleset maintenance within organizations.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -12,7 +13,7 @@
 					"name": "Rules",
 					"item": [
 						{
-							"name": "Get audit rule",
+							"name": "audit rule",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -33,7 +34,7 @@
 							"response": []
 						},
 						{
-							"name": "Get cloudtrail rule",
+							"name": "cloudtrail rule",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -54,7 +55,7 @@
 							"response": []
 						},
 						{
-							"name": "Get threatintel rule",
+							"name": "threatintel rule",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -75,7 +76,7 @@
 							"response": []
 						},
 						{
-							"name": "Get file rule",
+							"name": "file rule",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -549,13 +550,13 @@
 			"name": "Copying Rules, Rule Tags, and Rulesets",
 			"item": [
 				{
-					"name": "Copy rule and ruleset to a different destination organization",
+					"name": "Copy rule, ruleset, and tags to a different destination organization",
 					"request": {
 						"method": "POST",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"destination_organization\": \"\",\n    \"rules\": [\n        {\n            \"rule_id\": \"{{rule_id}}\",\n            \"rule_postfix\": \" - COPY\"\n        }\n    ],\n    \"rulesets\": [\n        {\n            \"ruleset_id\": \"{{ruleset_id}}\",\n            \"ruleset_postfix\": \" - COPY\"\n        }\n    ]\n}",
+							"raw": "{\n    \"destination_organization\": \"\",\n    \"rules\": [\n        {\n            \"rule_id\": \"{{rule_id}}\",\n            \"rule_postfix\": \" - COPY\"\n        }\n    ],\n    \"rulesets\": [\n        {\n            \"ruleset_id\": \"{{ruleset_id}}\",\n            \"ruleset_postfix\": \" - COPY\"\n        }\n    ],\n    \"tags\": [\n        {\n            \"src_rule_id\": \"{{rule_id}}\",\n            \"dst_ruleset_id\": \"{{alt_ruleset_id}}\"\n        }\n    ]\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -631,8 +632,37 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Copy tags from one rule to another",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"destination_organization\": \"{{destination_organization}}\",\n    \"tags\": [\n        {\n            \"src_rule_id\": \"\",\n            \"dst_rule_id\": \"\"\n        },\n        {\n            \"src_rule_id\": \"\",\n            \"dst_ruleset_id\": \"\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8000/copy",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
+								"copy"
+							]
+						}
+					},
+					"response": []
 				}
-			]
+			],
+			"description": "The `/copy` endpoint can be used to copy entire rulesets, rules, or tags intra- or extra-organization (e.g. between two organizations)."
 		},
 		{
 			"name": "Tags",

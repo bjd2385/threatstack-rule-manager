@@ -64,6 +64,10 @@ CONTAINER ID   IMAGE                 COMMAND         CREATED         STATUS     
 ```
 By default, the container listens on all interfaces on port `8000`. This may be modified and confined to a particular interface (or different port) by adjusting the Gunicorn `bind` setting in [gunicorn.py](src/api/gunicorn.py#L28)
 
+### API
+
+Running the container starts the Flask-based API. Please view the [public documentation](https://documenter.getpostman.com/view/8527107/TzXtHfYj) (via Postman) and import the Postman library (in [postman/](postman/tsctl%20backend%20Flask%20API.postman_collection.json)) to test requests against the API directly. Or, start the front end container to interact at a higher level with the API.
+
 ### FAQs
 
 #### What does the local state directory's structure look like?
