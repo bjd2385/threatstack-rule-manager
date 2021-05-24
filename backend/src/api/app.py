@@ -2,7 +2,7 @@
 Provide a slightly-higher level interface between tsctl's state methods and calls and what will be the front end.
 """
 
-from typing import Dict, Union
+from typing import Dict
 
 import tsctl
 import os
@@ -14,11 +14,8 @@ from repo.actions import initialize_repo
 
 
 here = os.path.dirname(os.path.realpath(__file__)) + '/'
-
 app = Flask(__name__)
-
 state_directory_path, state_file_path, credentials = tsctl.tsctl.config_parse()
-
 cached_read_json = lru_cache(maxsize=32)(tsctl.tsctl.read_json)
 
 
