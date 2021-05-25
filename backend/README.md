@@ -62,7 +62,7 @@ CONTAINER ID   IMAGE                 COMMAND         CREATED         STATUS     
 814b24dbd264   rule-manager:latest   "bash app.sh"   3 seconds ago   Up 1 second   0.0.0.0:8000->8000/tcp   ts-rule-manager
 
 ```
-By default, the container listens on all interfaces on port `8000`. This may be modified and confined to a particular interface (or different port) by adjusting the Gunicorn `bind` setting in [gunicorn.py](src/api/gunicorn.py#L28)
+By default, the container listens on `127.0.0.1:8000`. This may be modified and confined to a particular interface (or different port) by adjusting the Gunicorn `bind` setting in [gunicorn.py](src/api/gunicorn.py#L28)
 
 ### API
 

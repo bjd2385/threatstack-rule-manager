@@ -1,11 +1,35 @@
 version: "3.9"
 services:
   backend:
-    image: "tsctl:latest"
-    build: .
+    image: rule-manager:latest
+    build: backend/
     ports:
-      - "8085:8085"
-    volumes:
-      - .:/code
-  web:
-    image: "ruleviewer:latest"
+      - "127.0.0.1:8000:8000"
+    env_file:
+      # Must define `USER_ID` and `API_KEY` (you can acquire these keys from the Threat Stack app).
+      - .env
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "500M"
+        reservations:
+          memory: "250M"
+    container_name: rule-manager-backend
+  app:
+    image: "rule-viewer:latest"
+    build: app/
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - PORT=3000
+    depends_on:
+      - "backend"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: "250M"
+        reservations:
+          memory: "120M"
+    container_name: rule-manager-app

@@ -922,6 +922,23 @@ class State:
             ret[self.org_id][ruleset_id] = ruleset
         return ret
 
+    def get_tags(self, rule_id: str) -> Optional[Dict]:
+        """
+        Get the tags for a particular rule ID.
+
+        Args:
+            rule_id: rule ID on which to return tags.
+
+        Returns:
+             The tags' JSON.
+        """
+        if not (rule_dir := self._locate_rule(rule_id)):
+            print(f'Rule ID \'{rule_id}\' not found in this organization. Please create before updating its tags.')
+            return
+
+        tags_data = read_json(rule_dir + 'tags.json')
+        return tags_data
+
     # Remote state management API.
 
     @lazy

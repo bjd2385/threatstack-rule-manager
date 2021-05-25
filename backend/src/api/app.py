@@ -19,6 +19,47 @@ state_directory_path, state_file_path, credentials = tsctl.tsctl.config_parse()
 cached_read_json = lru_cache(maxsize=32)(tsctl.tsctl.read_json)
 
 
+def is_workspace_set() -> bool:
+    """
+    Determine if the user has set a workspace.
+
+    Returns:
+        Whether or not, upon reading the state file, the workspace has been set.
+    """
+    return bool(tsctl.tsctl.plan(state_file_path)['workspace'])
+
+
+def new_state(org_id: Optional[str] =None) -> Optional[tsctl.tsctl.State]:
+    """
+    Create a new State instance.
+
+    Args:
+        org_id: if not set, create a new State instance from the current workspace.
+
+    Returns:
+        A new State instance.
+    """
+    if org_id:
+        return tsctl.tsctl.State(
+            state_directory_path,
+            state_file_path,
+            **credentials,
+            org_id=org_id
+        )
+    else:
+        if is_workspace_set():
+            # Create a State instance based on the default read creds.
+            org_id = tsctl.tsctl.plan(state_file_path)['workspace']
+            return tsctl.tsctl.State(
+                state_directory_path,
+                state_file_path,
+                **credentials,
+                org_id=org_id
+            )
+        else:
+            return
+
+
 def _ensure_args(request_data: Dict, *args: str) -> bool:
     """
     Take a set of args and a multidict to ensure they reside within.
@@ -159,7 +200,7 @@ def refresh() -> Dict:
     request_data = request.get_json()
     if request_data and _ensure_args(request_data, 'organizations'):
         for org_id in request_data['organizations']:
-            organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
+            organization = new_state(org_id=org_id)
             organization.refresh()
         return tsctl.tsctl.plan(state_file_path, show=False)
     else:
@@ -185,7 +226,7 @@ def push() -> Dict:
     request_data = request.get_json()
     if request_data and _ensure_args(request_data, 'organizations'):
         for org_id in request_data['organizations']:
-            organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
+            organization = new_state(org_id=org_id)
             organization.push()
         return tsctl.tsctl.plan(state_file_path, show=False)
     else:
@@ -252,6 +293,7 @@ def copy() -> Dict:
         "rules": [
             {
                 "rule_id": "<rule_ID>",
+                "ruleset_id": "<ruleset_ID>",
                 "rule_name_postfix": "<optional_postfix>"
             },
             ...
@@ -266,21 +308,81 @@ def copy() -> Dict:
         "tags": [
             {
                 "src_rule_id": "<src_rule_id>",
-                <"dst_rule_id": "<dst_rule_id>",
-                "dst_ruleset_id": "<dst_ruleset_id>">
-            }
+                "dst_rule_id": "<dst_rule_id>"
+            },
+            ...
         ]
     }
 
     Returns:
-        The new rule or ruleset's JSON.
+        The state file, following the copies.
     """
     request_data = request.get_json()
     if request_data:
-        destination_organization: Optional[tsctl.tsctl.State] = None
+        destination_organization: Optional[str] = None
         if _ensure_args(request_data, 'destination_organization'):
-            alt_organization_id = request_data['destination_organization']
-            destination_organization = tsctl.tsctl.State(state_directory_path, state_file_path, **credentials, org_id=alt_organization_id)
+            # All copies should be made to another organization, not to the current workspace.
+            destination_organization = request_data['destination_organization']
+
+        if (organization := new_state()) is None:
+            return {
+                "error": "must set workspace before copying."
+            }
+
+        if _ensure_args(request_data, 'rules'):
+            for rule in request_data['rules']:
+                if not _ensure_args(rule, 'rule_id', 'ruleset_id'):
+                    return {
+                        "error": "rule must have fields 'rule_id' and 'ruleset_id' defined."
+                    }
+                rule_id, ruleset_id = rule['rule_id'], rule['ruleset_id']
+                rule_name_postfix = None
+                if _ensure_args(rule, 'rule_name_postfix'):
+                    rule_name_postfix = rule['rule_name_postfix']
+                if destination_organization:
+                    organization.copy_rule_out(rule_id, ruleset_id, destination_organization, postfix=rule_name_postfix)
+                else:
+                    organization.copy_rule(rule_id, ruleset_id, postfix=rule_name_postfix)
+
+        if _ensure_args(request_data, 'rulesets'):
+            for ruleset in request_data['rulesets']:
+                if not _ensure_args(ruleset, 'ruleset_id'):
+                    return {
+                        "error": "ruleset must have field 'ruleset_id' defined."
+                    }
+                ruleset_id = ruleset['ruleset_id']
+                ruleset_name_postfix = None
+                if _ensure_args(ruleset, 'ruleset_name_postfix'):
+                    ruleset_name_postfix = ruleset['ruleset_name_postfix']
+                if destination_organization:
+                    organization.copy_ruleset_out(ruleset_id, postfix=ruleset_name_postfix)
+                else:
+                    organization.copy_ruleset(ruleset_id, postfix=ruleset_name_postfix)
+
+        if _ensure_args(request_data, 'tags'):
+            for tag in request_data['tags']:
+                if not _ensure_args(tag, 'src_rule_id', 'dst_rule_id'):
+                    return {
+                        "error": "tags must have fields 'src_rule_id' and 'dst_rule_id' defined."
+                    }
+                src_rule_id, dst_rule_id = tag['src_rule_id'], tag['dst_rule_id']
+                if destination_organization:
+                    _destination_organization = new_state(org_id=destination_organization)
+                    if (tags_data := organization.get_tags(src_rule_id)) is not None:
+                        _destination_organization.create_tags(dst_rule_id, tags_data)
+                    else:
+                        return {
+                            "error": f"tags data does not exist on rule ID '{src_rule_id}'."
+                        }
+                else:
+                    if (tags_data := organization.get_tags(src_rule_id)) is not None:
+                        organization.create_tags(dst_rule_id, tags_data)
+                    else:
+                        return {
+                            "error": f"tags data does not exist on rule ID '{src_rule_id}'."
+                        }
+
+        return tsctl.tsctl.plan(state_file_path, show=False)
 
     else:
         abort(HTTPStatus.BAD_REQUEST)
@@ -336,14 +438,12 @@ def rule() -> Dict:
         # Update the rule in-place.
         request_data = request.get_json()
         if request_data and _ensure_args(request_data, 'rule_id', 'data'):
-            org_id = tsctl.tsctl.plan(state_file_path, show=False)['workspace']
-            if not org_id:
+            if (organization := new_state()) is None:
                 return {
                     "error": "must set workspace before you can update rules."
                 }
             rule_id = request_data['rule_id']
             rule_data = request_data['data']
-            organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
             organization.update_rule(rule_id, rule_data)
         else:
             abort(HTTPStatus.BAD_REQUEST)
@@ -359,7 +459,10 @@ def rule() -> Dict:
                 return {
                     "error": "must set workspace before you can post new rules."
                 }
-            organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
+            if (organization := new_state()) is None:
+                return {
+                    "error": "must set workspace before you can create rules."
+                }
             for update in data:
                 rule = update['rule']
                 if 'tags' in update:
@@ -367,7 +470,7 @@ def rule() -> Dict:
                 else:
                     tags = None
                 organization.create_rule(ruleset_id, rule, tags)
-            return tsctl.tsctl.plan(state_file_path, show=False)['organizations'][org_id]
+            return tsctl.tsctl.plan(state_file_path, show=False)
         else:
             abort(HTTPStatus.BAD_REQUEST)
 
@@ -384,7 +487,7 @@ def update_tags() -> Dict:
     Update the tags on a rule in this workspace. Expects a data object similar to the endpoint above.
 
     {
-        "rule_id": "some_rule_id",
+        "rule_id": "<some_rule_id>",
         "tags": {
             "inclusion": [{...}],
             "exclusion": [{...}]
@@ -396,14 +499,12 @@ def update_tags() -> Dict:
     """
     request_data = request.get_json()
     if request_data and _ensure_args(request_data, 'rule_id', 'data'):
-        org_id = tsctl.tsctl.plan(state_file_path, show=False)['workspace']
-        if not org_id:
+        if (organization := new_state()) is None:
             return {
                 "error": "must set workspace before you can update tags."
             }
         rule_id = request_data['rule_id']
         tags_data = request_data['data']
-        organization = tsctl.tsctl.State(state_directory_path, state_file_path, org_id=org_id, **credentials)
         organization.create_tags(rule_id, tags_data)
     else:
         abort(HTTPStatus.BAD_REQUEST)
