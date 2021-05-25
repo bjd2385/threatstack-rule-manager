@@ -73,6 +73,16 @@ def _ensure_args(request_data: Dict, *args: str) -> bool:
     return all((arg in request_data and request_data[arg]) for arg in args)
 
 
+@app.route('/version', methods=['GET'])
+def version() -> Dict[str, str]:
+    """
+    Return the version of the backend app (based on tsctl.__version__).
+    """
+    return {
+        "version": tsctl.__version__
+    }
+
+
 @app.route('/templates/ruleset', methods=['GET'])
 def template_ruleset() -> Dict:
     """
@@ -198,8 +208,10 @@ def refresh() -> Dict:
         The state file, and if the refresh was successful, the organization's state will be cleared (hence not present).
     """
     request_data = request.get_json()
+    print(request_data)
     if request_data and _ensure_args(request_data, 'organizations'):
         for org_id in request_data['organizations']:
+            print(org_id)
             organization = new_state(org_id=org_id)
             organization.refresh()
         return tsctl.tsctl.plan(state_file_path, show=False)

@@ -21,6 +21,8 @@ from . import lazy_eval
 RuleStatus = Literal['rule', 'tags', 'both', 'del']
 RulesetStatus = Literal['true', 'false', 'del']
 
+logger = logging.getLogger(__name__)
+
 
 def lazy(f: Callable[..., 'State']) -> Callable:
     """
@@ -306,7 +308,7 @@ class State:
                 for field in ('id', 'createdAt', 'updatedAt'):
                     ruleset.pop(field)
 
-                print(f'Refreshing ruleset ID \'{ruleset_id}\'')
+                logger.debug(f'Refreshing ruleset ID \'{ruleset_id}\'')
 
                 ruleset_rules = api.get_ruleset_rules(ruleset_id)
                 ruleset_dir = remote_dir + ruleset_id + '/'
@@ -315,7 +317,7 @@ class State:
 
                 for rule in ruleset_rules['rules']:
                     rule_id = rule['id']
-                    print(f'\tPulling rule and tag JSON on rule ID \'{rule_id}\'')
+                    logger.debug(f'\tPulling rule and tag JSON on rule ID \'{rule_id}\'')
                     rule_tags = api.get_rule_tags(rule_id)
                     rule_dir = ruleset_dir + rule_id + '/'
                     os.mkdir(rule_dir)

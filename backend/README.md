@@ -62,9 +62,9 @@ CONTAINER ID   IMAGE                 COMMAND         CREATED         STATUS     
 814b24dbd264   rule-manager:latest   "bash app.sh"   3 seconds ago   Up 1 second   0.0.0.0:8000->8000/tcp   ts-rule-manager
 
 ```
-By default, the container listens on `127.0.0.1:8000`. This may be modified and confined to a particular interface (or different port) by adjusting the Gunicorn `bind` setting in [gunicorn.py](src/api/gunicorn.py#L28)
+By default, the container listens on port `8000` on all available interfaces. This may be modified and confined to a particular interface (or different port) by adjusting the Gunicorn `bind` setting in [gunicorn.py](src/api/gunicorn.py#L28)
 
-### API
+#### API
 
 Running the container starts the Flask-based API. Please view the [public documentation](https://documenter.getpostman.com/view/8527107/TzXtHfYj) (via Postman) and import the Postman library (in [src/tests/postman/](src/tests/postman/tsctl%20backend%20Flask%20API.postman_collection.json)) to test requests against the API directly. Or, start the frontend container to interact visually with the API.
 
@@ -86,8 +86,7 @@ The state directory is structured like ~
 │   │   │   ├── rule.json
 │   │   │   └── tags.json
 │   │   └── ruleset.json
-│   ├── 6be3e51a-d63c-11e9-bc18-01fe680446ed
-│   └── 6c2078d1-d63c-11e9-bc18-1b06bdc4074a
+...
 ├── .gitignore
 └── .threatstack.state.json
 ```
@@ -97,7 +96,11 @@ In other words, it is a hierarchy of organizations, rulesets, and rules. Require
 * unique ruleset names and IDs, organization-wide, and
 * unique rule names and IDs, organization-wide.
 
-### TODOs
+### Development Notes
+
+* Be sure to increment [`src/tsctl/__init__.__version__`](src/tsctl/__init__.py) when producing new releases. This is referenced while calling `--version`, as well as during the build process with `setuptools`.
+
+#### TODOs
 
 1. Add an `(MODIFIED)` string to the end of rules or rulesets under `--list` output that reside in the state file and will be pushed.
 2. Add proper `logging` implementation throughout the module.
@@ -107,7 +110,3 @@ In other words, it is a hierarchy of organizations, rulesets, and rules. Require
 5. Bash autocompletions would be cool.
 6. Ensure logging includes source and destination rule/ruleset IDs, so we know where `*-localonly` copies came from for reproducibility. Probably `DEBUG` loglevel.
 7. Add a db for faster/better lookups than just plain directory traversal.
-
-### Development Notes
-
-* Be sure to update [`src/tsctl/__init__.__version__`](src/tsctl/__init__.py) when producing new releases. This is referenced while calling `--version`, as well as during the build process with `setuptools`.
