@@ -21,8 +21,6 @@ from . import lazy_eval
 RuleStatus = Literal['rule', 'tags', 'both', 'del']
 RulesetStatus = Literal['true', 'false', 'del']
 
-logger = logging.getLogger(__name__)
-
 
 def lazy(f: Callable[..., 'State']) -> Callable:
     """
@@ -117,6 +115,7 @@ class State:
                     logging.info(f'Creating ruleset: {ruleset_id}')
                     try:
                         ruleset_response = api.post_ruleset(ruleset_data)
+                        print(ruleset_response)
                         new_ruleset_id = ruleset_response['id']
                         logging.debug(f'New ruleset ID: {new_ruleset_id}')
                     except URLError as msg:
@@ -299,7 +298,7 @@ class State:
         try:
             rulesets = api.get_rulesets()
             if 'errors' in rulesets:
-                print('Could not retrieve organization with the provided credentials.')
+                logging.error('Could not retrieve organization with the provided credentials.')
                 exit(1)
             for ruleset in rulesets['rulesets']:
                 ruleset_id = ruleset['id']
@@ -308,7 +307,7 @@ class State:
                 for field in ('id', 'createdAt', 'updatedAt'):
                     ruleset.pop(field)
 
-                logger.debug(f'Refreshing ruleset ID \'{ruleset_id}\'')
+                logging.debug(f'Refreshing ruleset ID \'{ruleset_id}\'')
 
                 ruleset_rules = api.get_ruleset_rules(ruleset_id)
                 ruleset_dir = remote_dir + ruleset_id + '/'
@@ -317,7 +316,7 @@ class State:
 
                 for rule in ruleset_rules['rules']:
                     rule_id = rule['id']
-                    logger.debug(f'\tPulling rule and tag JSON on rule ID \'{rule_id}\'')
+                    logging.debug(f'\tPulling rule and tag JSON on rule ID \'{rule_id}\'')
                     rule_tags = api.get_rule_tags(rule_id)
                     rule_dir = ruleset_dir + rule_id + '/'
                     os.mkdir(rule_dir)

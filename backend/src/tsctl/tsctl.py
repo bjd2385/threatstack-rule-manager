@@ -16,9 +16,6 @@ from .utils import read_json, write_json
 from . import __version__
 
 
-logger = logging.getLogger(__name__)
-
-
 def config_parse() -> Tuple[str, str, Dict[str, str]]:
     """
     Initialize the state directory in the user's home directory and parse config options.
@@ -37,7 +34,7 @@ def config_parse() -> Tuple[str, str, Dict[str, str]]:
         default_conf_file = dedent(
             """
             [RUNTIME]
-            LOGLEVEL = ERROR
+            LOGLEVEL = DEBUG
             
             [STATE]
             STATE_DIR = .threatstack
@@ -53,10 +50,13 @@ def config_parse() -> Tuple[str, str, Dict[str, str]]:
     # Collect runtime options, such as laziness and log level.
     if 'RUNTIME' in parser.sections():
         runtime_section = parser['RUNTIME']
-        loglevel = runtime_section.get('LOGLEVEL', fallback='ERROR')
-        logger.setLevel(loglevel)
+        loglevel = runtime_section.get('LOGLEVEL', fallback='INFO')
+
+        if logging.getLogger().getEffectiveLevel() != loglevel:
+            logging.basicConfig(level=loglevel)
+            logging.info(f'Setting log level to \'{loglevel}\'')
     else:
-        print(f'Must define RUNTIME section in \'{conf}\'.')
+        logging.error(f'Must define RUNTIME section in \'{conf}\'.')
         exit(1)
 
     # Set up the local state directory and a default state file, if it doesn't exist.
@@ -250,7 +250,7 @@ def main() -> None:
 
     # Workspace options and optional options.
 
-    group.add_argument(
+    parser.add_argument(
         '--colorful', dest='color', action='store_true',
         help='Add xterm coloring to output. Only works on certain commands (--list).'
     )
@@ -291,6 +291,9 @@ def main() -> None:
     if options['version']:
         print(f'tsctl v{__version__}')
         return
+    elif options['switch']:
+        org_id = options['switch']
+        workspace(state_directory, state_file, org_id, credentials)
 
     state = read_json(state_file)
 

@@ -262,7 +262,7 @@ def clone_git() -> Dict:
         The contents of the directory once it has been cloned.
     """
     request_data = request.get_json()
-    if request_data and _ensure_args(request_data, 'directory', 'git-url'):
+    if request_data and _ensure_args(request_data, 'directory', 'gitURL'):
         directory = request_data['directory']
         git_repo = request_data['gitURL']
         return {
@@ -357,15 +357,15 @@ def copy() -> Dict:
                     organization.copy_rule(rule_id, ruleset_id, postfix=rule_name_postfix)
 
         if _ensure_args(request_data, 'rulesets'):
-            for ruleset in request_data['rulesets']:
-                if not _ensure_args(ruleset, 'ruleset_id'):
+            for ruleset_data in request_data['rulesets']:
+                if not _ensure_args(ruleset_data, 'ruleset_id'):
                     return {
                         "error": "ruleset must have field 'ruleset_id' defined."
                     }
-                ruleset_id = ruleset['ruleset_id']
+                ruleset_id = ruleset_data['ruleset_id']
                 ruleset_name_postfix = None
-                if _ensure_args(ruleset, 'ruleset_name_postfix'):
-                    ruleset_name_postfix = ruleset['ruleset_name_postfix']
+                if _ensure_args(ruleset_data, 'ruleset_name_postfix'):
+                    ruleset_name_postfix = ruleset_data['ruleset_name_postfix']
                 if destination_organization:
                     organization.copy_ruleset_out(ruleset_id, postfix=ruleset_name_postfix)
                 else:
@@ -476,12 +476,12 @@ def rule() -> Dict:
                     "error": "must set workspace before you can create rules."
                 }
             for update in data:
-                rule = update['rule']
+                rule_data = update['rule']
                 if 'tags' in update:
-                    tags = update['tags']
+                    tags_data = update['tags']
                 else:
-                    tags = None
-                organization.create_rule(ruleset_id, rule, tags)
+                    tags_data = None
+                organization.create_rule(ruleset_id, rule_data, tags_data)
             return tsctl.tsctl.plan(state_file_path, show=False)
         else:
             abort(HTTPStatus.BAD_REQUEST)
