@@ -1,0 +1,34 @@
+{
+  "optional": {
+    "alertDescription": "",
+    "aggregateFields": [
+      "command",
+      "correlation",
+      "dns_host",
+      "dst_host",
+      "dst_ip",
+      "dst_ipv6",
+      "dst_port",
+      "exe",
+      "guid",
+      "sam_account",
+      "src_ip",
+      "src_ipv6",
+      "src_addr",
+      "src_port",
+      "user",
+      "sid"
+    ],
+    "suppressions": []
+  },
+  "required": {
+    "name": "",
+    "title":  "",
+    "type": "Winsec",
+    "severityOfAlerts": 3,
+    "filter": "",
+    "window": 86400,
+    "threshold": 1,
+    "enabled": false
+  }
+}

@@ -2,15 +2,29 @@
   "optional": {
     "alertDescription": "",
     "aggregateFields": [
-      {
-        "host": ""
-      }
-    ]
+      "exe",
+      "user",
+      "arguments",
+      "ip",
+      "port",
+      "command",
+      "session",
+      "src_ip",
+      "dst_ip",
+      "src_user",
+      "dst_user",
+      "filename",
+      "cloudProvider",
+      "accountId",
+      "availabilityZone",
+      "hostname"
+    ],
+    "suppressions": []
   },
   "required": {
     "name": "",
     "title": "",
-    "type": "host",
+    "type": "Host",
     "severityOfAlerts": 3,
     "filter": ""
   }

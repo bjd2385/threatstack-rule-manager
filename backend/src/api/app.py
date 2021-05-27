@@ -151,8 +151,30 @@ def template_rules_file() -> Dict:
     return cached_read_json(f'{here}templates/rules/file.json')
 
 
+@app.route('/templates/rules/kubernetesaudit', methods=['GET'])
+def template_rules_kubernetesaudit() -> Dict:
+    """
+    Get a skeleton kubernetesAudit rule.
+
+    Returns:
+        The read template from disk.
+    """
+    return cached_read_json(f'{here}templates/rules/kubernetes_audit.json')
+
+
+@app.route('/templates/rules/kubernetesconfig', methods=['GET'])
+def template_rules_kubernetesconfig() -> Dict:
+    """
+    Get a skeleton kubernetesAudit rule.
+
+    Returns:
+        The read template from disk.
+    """
+    return cached_read_json(f'{here}templates/rules/kubernetes_config.json')
+
+
 @app.route('/templates/rules/threatintel', methods=['GET'])
-def template_threatintel_file() -> Dict:
+def template_rules_threatintel() -> Dict:
     """
     Get a skeleton FIM rule.
 
@@ -160,6 +182,17 @@ def template_threatintel_file() -> Dict:
         The read template from disk.
     """
     return cached_read_json(f'{here}templates/rules/threat_intel.json')
+
+
+@app.route('/templates/rules/winsec', methods=['GET'])
+def template_rules_winsec() -> Dict:
+    """
+    Get a skeleton Winsec rule.
+
+    Returns:
+        The read template from disk.
+    """
+    return cached_read_json(f'{here}templates/rules/winsec.json')
 
 
 @app.route('/plan', methods=['GET'])

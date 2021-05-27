@@ -1,6 +1,23 @@
 {
   "optional": {
+    "alertDescription": "",
+    "aggregateFields": [
+      "user",
+      "eventName",
+      "eventSource",
+      "ip",
+      "accountId"
+    ],
+    "suppressions": []
   },
   "required": {
+    "name": "",
+    "title": "",
+    "type": "CloudTrail",
+    "severityOfAlerts": 3,
+    "filter": "",
+    "window": 86400,
+    "threshold": 1,
+    "enabled": false
   }
 }

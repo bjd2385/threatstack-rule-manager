@@ -1,22 +1,20 @@
 {
   "optional": {
     "alertDescription": "",
-    "aggregateFields": [
-      "threatintel_source",
-      "threatintel_reason",
-      "threatintel_type",
-      "ip",
-      "cloudProvider",
-      "accountId",
-      "availabilityZone",
-      "hostname"
+    "aggregateFilds": [
+      "action",
+      "node_name",
+      "namespace",
+      "resource",
+      "name",
+      "type"
     ],
     "suppressions": []
   },
   "required": {
     "name": "",
     "title": "",
-    "type": "ThreatIntel",
+    "type": "KubernetesAudit",
     "severityOfAlerts": 3,
     "filter": "",
     "window": 86400,

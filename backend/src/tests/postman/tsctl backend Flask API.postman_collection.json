@@ -95,6 +95,69 @@
 								}
 							},
 							"response": []
+						},
+						{
+							"name": "winsec rule",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/templates/rules/winsec",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"templates",
+										"rules",
+										"winsec"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "kubernetesAudit rule",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/templates/rules/kubernetesaudit",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"templates",
+										"rules",
+										"kubernetesaudit"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "kubernetesConfig rule",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/templates/rules/kubernetesconfig",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"templates",
+										"rules",
+										"kubernetesconfig"
+									]
+								}
+							},
+							"response": []
 						}
 					]
 				},
@@ -297,7 +360,7 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/rule?rule_id=a189f66e-44ea-11e9-961f-4d885196bbb8",
+							"raw": "http://localhost:8000/rule?rule_id=4c1892a8-320f-46e7-8709-472cf6740788-localonly",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -309,7 +372,7 @@
 							"query": [
 								{
 									"key": "rule_id",
-									"value": "a189f66e-44ea-11e9-961f-4d885196bbb8"
+									"value": "4c1892a8-320f-46e7-8709-472cf6740788-localonly"
 								}
 							]
 						},
