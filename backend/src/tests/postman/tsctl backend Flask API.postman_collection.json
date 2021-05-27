@@ -234,7 +234,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/rule?tags=true&enabled=false&type=cloudtrail",
+							"raw": "http://localhost:8000/rule?tags=true&enabled=false&type=file",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -254,7 +254,7 @@
 								},
 								{
 									"key": "type",
-									"value": "cloudtrail"
+									"value": "file"
 								}
 							]
 						},
@@ -297,7 +297,7 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/rule?rule_id=6c2c5fd9-d63c-11e9-bc18-3b939bb3754a",
+							"raw": "http://localhost:8000/rule?rule_id=a189f66e-44ea-11e9-961f-4d885196bbb8",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -309,7 +309,7 @@
 							"query": [
 								{
 									"key": "rule_id",
-									"value": "6c2c5fd9-d63c-11e9-bc18-3b939bb3754a"
+									"value": "a189f66e-44ea-11e9-961f-4d885196bbb8"
 								}
 							]
 						},
@@ -698,6 +698,25 @@
 							"port": "8000",
 							"path": [
 								"rule",
+								"tags"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get tags on a rule",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8000/tags",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8000",
+							"path": [
 								"tags"
 							]
 						}

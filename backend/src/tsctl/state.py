@@ -913,8 +913,9 @@ class State:
         for ruleset_id in ruleset_list:
             ruleset_dir = self.organization_dir + ruleset_id + '/'
             ruleset_data = read_json(ruleset_dir + 'ruleset.json')
+            ruleset_name = ruleset_data['name']
             ruleset = {
-                'data': ruleset_data,
+                'name': ruleset_name,
                 'rules': dict()
             }
             for rule_id in os.listdir(ruleset_dir):

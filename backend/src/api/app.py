@@ -586,7 +586,22 @@ def rule() -> Dict:
 
     elif request.method == 'DELETE':
         # Delete rule(s).
-        ...
+        if not (org_id := get_workspace()):
+            return {
+                "error": "Must set workspace prior to deleting rules."
+            }
+
+        rule_ids = request.args.getlist('rule_id')
+
+        if not rule_ids:
+            return {
+                "error": "Must submit at least one rule ID to delete."
+            }
+
+        organization = new_state()
+
+        for rule_id in rule_ids:
+            organization.delete_rule(rule_id)
 
     return tsctl.tsctl.plan(state_file_path, show=False)
 
@@ -598,7 +613,7 @@ def update_tags() -> Dict:
 
     {
         "rule_id": "<some_rule_id>",
-        "tags": {
+        "data": {
             "inclusion": [{...}],
             "exclusion": [{...}]
         }
