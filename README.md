@@ -3,7 +3,7 @@ Threat Stack Rule Manager
 
 ### Run locally
 
-You must have `docker-compose` installed (the application has been tested with `>= 1.29.2`), as well as define a local `.env` file with `API_KEY` and `USER_ID` defined, followed by running
+You must define a local `.env` file with `API_KEY` and `USER_ID` set, followed by running
 ```shell
 $ docker compose up --build -d
 ```

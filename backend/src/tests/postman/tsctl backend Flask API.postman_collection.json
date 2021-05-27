@@ -234,7 +234,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/rule?tags=true",
+							"raw": "http://localhost:8000/rule?tags=true&type=file",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -247,9 +247,14 @@
 								{
 									"key": "tags",
 									"value": "true"
+								},
+								{
+									"key": "type",
+									"value": "file"
 								}
 							]
-						}
+						},
+						"description": "Acceptable query parameters include\n\n* `rule_id`, to query by or return specific rule IDs;\n* `severity`, to query across the entire organization's locally-cached state by severity;\n* `type`, to query across the entire organization by rule type;\n* `enabled`, to filter returned results from the former parameters by whether or not the rules are enabled; and,\n* `tags`, an additional option (defaults to `false`) a user to can use to select whether or not to return tag data.\n\nAll are optional args, but you cannot filter by more than one of `rule_id`, `severity`, or `type` or you'll receive a returned payload containing an `error` message. \n\n`enabled` can, however, be applied to filter any returned results of the former params, or be used to filter across the entire organization for enabled or disabled rules.\n\n`tags` is an additional optional field that defaults, again, to `false`, that a user can use to return tag data with the rule objects."
 					},
 					"response": []
 				},
@@ -495,7 +500,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"organizations\": [\n        {{org_id}}\n    ]\n}",
+							"raw": "{\n    \"organizations\": [\n        \"{{org_id}}\"\n    ]\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -523,7 +528,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"organizations\": [\n        {{org_id}}\n    ]\n}",
+							"raw": "{\n    \"organizations\": [\n        \"{{org_id}}\"\n    ]\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -688,6 +693,26 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "Version",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/version",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"version"
+					]
+				},
+				"description": "Return the backend version string."
+			},
+			"response": []
 		}
 	]
 }

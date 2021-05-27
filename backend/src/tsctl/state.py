@@ -20,6 +20,10 @@ from . import lazy_eval
 
 RuleStatus = Literal['rule', 'tags', 'both', 'del']
 RulesetStatus = Literal['true', 'false', 'del']
+Severity = Literal[1, 2, 3]
+
+# This Literal should match types listed in src/api/templates/rules/.
+RuleType = Literal['file', 'cloudtrail', 'host', 'threatintel', 'windows']
 
 
 def lazy(f: Callable[..., 'State']) -> Callable:
@@ -880,15 +884,21 @@ class State:
                 else:
                     print(f'({rule_id})')
 
-    def lst_api(self, tags: bool =False) -> Optional[Dict[str, Dict[str, Dict[str, str]]]]:
+    def lst_api(self, tags: bool =False, rule_ids: Optional[List] =None, severity: Optional[Severity] =None, typ: Optional[RuleType] =None, full_data: bool =False) -> Optional[Dict[str, Dict[str, Dict[str, Any]]]]:
         """
-        Provide a list of this organization's rulesets and rules to an API call.
+        Provide a list of this organization's rulesets and rules to an API call. This method should only be called by
+        the API, since the calling method should have additional logic to restrict what args can be provided by a user.
 
         Args:
-            tags: if True, return rules' tags as well, not just their names.
+            rule_ids: rule IDs to filter the list by, if they occur.
+            severity: either 1, 2, or 3.
+            typ: rule type to filter the results of the former querying parameters by.
+            tags: if True, return rules' tags as well, not just their names (by default, False).
+            full_data: if True, return the rule's full data.
 
         Returns:
-            A dictionary containing this organization's rules and rulesets.
+            Either None if the organization is empty (either hasn't been refreshed, or is currently going through one),
+            or a dictionary containing this organization's rules and rulesets.
         """
         ruleset_list = os.listdir(self.organization_dir)
 
@@ -913,10 +923,19 @@ class State:
                     rule_dir = ruleset_dir + rule_id + '/'
                     rule_data = read_json(rule_dir + 'rule.json')
 
-                    rule_name = rule_data['name']
-                    ruleset['rules'][rule_id] = {
-                        'name': rule_name
-                    }
+                    # Filter the rule list by query params (provided from the API request params).
+                    if rule_ids and rule_id not in rule_ids:
+                        continue
+                    elif severity and rule_data['severity'] != severity:
+                        continue
+                    elif typ and rule_data['type'].lower() != typ:
+                        continue
+
+                    if full_data:
+                        ruleset['rules'][rule_id] = rule_data
+                    else:
+                        rule_name = rule_data['name']
+                        ruleset['rules'][rule_id]['name'] = rule_name
                     if tags:
                         ruleset['rules'][rule_id]['tags'] = read_json(rule_dir + 'tags.json')
 

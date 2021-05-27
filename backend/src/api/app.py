@@ -2,7 +2,7 @@
 Provide a slightly-higher level interface between tsctl's state methods and calls and what will be the front end.
 """
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Any, cast, Literal
 
 import tsctl
 import os
@@ -18,6 +18,9 @@ app = Flask(__name__)
 state_directory_path, state_file_path, credentials = tsctl.tsctl.config_parse()
 cached_read_json = lru_cache(maxsize=32)(tsctl.tsctl.read_json)
 
+# Sync this list with tsctl.state
+RuleType = Literal['file', 'cloudtrail', 'host', 'threatintel', 'windows']
+
 
 def is_workspace_set() -> bool:
     """
@@ -26,7 +29,17 @@ def is_workspace_set() -> bool:
     Returns:
         Whether or not, upon reading the state file, the workspace has been set.
     """
-    return bool(tsctl.tsctl.plan(state_file_path)['workspace'])
+    return bool(get_workspace())
+
+
+def get_workspace() -> str:
+    """
+    Get the current workspace from the state file.
+
+    Returns:
+        Either an emptry string if the workspace has not been set yet, or a string containing the current workspace.
+    """
+    return tsctl.tsctl.plan(state_file_path, show=False)['workspace']
 
 
 def new_state(org_id: Optional[str] =None) -> Optional[tsctl.tsctl.State]:
@@ -49,7 +62,7 @@ def new_state(org_id: Optional[str] =None) -> Optional[tsctl.tsctl.State]:
     else:
         if is_workspace_set():
             # Create a State instance based on the default read creds.
-            org_id = tsctl.tsctl.plan(state_file_path)['workspace']
+            org_id = get_workspace()
             return tsctl.tsctl.State(
                 state_directory_path,
                 state_file_path,
@@ -208,10 +221,8 @@ def refresh() -> Dict:
         The state file, and if the refresh was successful, the organization's state will be cleared (hence not present).
     """
     request_data = request.get_json()
-    print(request_data)
     if request_data and _ensure_args(request_data, 'organizations'):
         for org_id in request_data['organizations']:
-            print(org_id)
             organization = new_state(org_id=org_id)
             organization.refresh()
         return tsctl.tsctl.plan(state_file_path, show=False)
@@ -410,10 +421,11 @@ def rule() -> Dict:
 
     • Get all rules, with optional filtering capabilities by type, ID, etc. Optional query parameters include
 
-        organization=<org_id>
         rule_id=<rule_id>
         rule_type=<rule_type>
         severity=<rule_severity>
+        enabled=<true|false>
+        tags=<true|false>
 
     • update a rule in-place,
 
@@ -433,7 +445,7 @@ def rule() -> Dict:
         }
     }
 
-    • or, delete a rule, querying by ID(s).
+    • or, delete a rule, querying by ID(s) (a required field).
 
         ?rule_id=<rule_id1>&rule_id=<rule_id2>
 
@@ -444,7 +456,91 @@ def rule() -> Dict:
         The updated state file, minus workspace, to show the update that took place.
     """
     if request.method == 'GET':
-        ...
+        # Get rule(s') JSON in the current workspace. The following `getlist` calls yield empty lists if there are no
+        # key instances present in the args MultiDict instance.
+        if not (org_id := get_workspace()):
+            return {
+                "error": "Must set workspace prior to querying rules."
+            }
+
+        rule_ids = request.args.getlist('rule_id')
+        rule_type = request.args.get('rule_type')
+        rule_severity = request.args.get('severity')
+        enabled = request.args.get('enabled')
+        tags = request.args.get('tags')
+
+        # Ensure the request args conform to accepted values.
+        if rule_ids and rule_type or rule_type and rule_severity or rule_ids and rule_severity:
+            return {
+                "error": "Must specify only one query parameter of 'rule_id', 'rule_type', or 'severity'."
+            }
+
+        # TODO: Somehow make this list importable, or easier to maintain as more rule types are added or removed from
+        #  the platform.
+        if rule_type and rule_type not in ['file', 'cloudtrail', 'host', 'threatintel', 'windows']:
+            return {
+                "error": "Rule type can only be one of 'file', 'cloudtrail', 'host', 'threatintel', 'windows'"
+            }
+
+        #ret: Dict[str, Dict[str, Dict[str, Dict[str, Any]]]] = {
+        #    org_id: {
+        #        # Ruleset IDs containing a Dict of rule IDs filtered by the specified parameters.
+        #    }
+        #}
+
+        organization = new_state()
+        if tags:
+            if tags not in ['true', 'false']:
+                return {
+                    "error": "'tags' must be either 'true' or 'false'."
+                }
+            _tags = True if tags == 'true' else False
+        else:
+            _tags = False
+
+        if rule_ids:
+            ret = organization.lst_api(tags=_tags, rule_ids=rule_ids, full_data=True)
+        elif rule_type:
+            ret = organization.lst_api(tags=_tags, typ=cast(RuleType, rule_type.lower()), full_data=True)
+        elif rule_severity:
+            ret = organization.lst_api(tags=_tags, severity=rule_severity, full_data=True)
+        else:
+            # No filtering by optional (exclusive) fields, just return an entire organization's-worth of rules and
+            # containing rulesets.
+            ret = organization.lst_api(tags=_tags, full_data=True)
+
+        if enabled:
+            if enabled not in ['true', 'false']:
+                return {
+                    "error": "'enabled' must either be 'true' or 'false."
+                }
+            if enabled == 'true':
+                for ruleset_id in ret[org_id]:
+                    for rule_id in ret[org_id][ruleset_id]['rules']:
+                        if not ret[org_id][ruleset_id]['rules'][rule_id]['enabled']:
+                            ret[org_id][ruleset_id].pop(rule_id)
+                            if not ret[org_id][ruleset_id]:
+                                ret[org_id].pop(ruleset_id)
+            elif enabled == 'false':
+                # Reversed logic on filtering as 'true'.
+                for ruleset_id in ret[org_id]:
+                    for rule_id in ret[org_id][ruleset_id]['rules']:
+                        if ret[org_id][ruleset_id]['rules'][rule_id]['enabled']:
+                            ret[org_id][ruleset_id].pop(rule_id)
+                            if not ret[org_id][ruleset_id]:
+                                ret[org_id].pop(ruleset_id)
+
+        if ret:
+            # Remove empty rulesets due to rule filtering.
+            for ruleset_id in list(ret[org_id]):
+                if len(ret[org_id][ruleset_id]['rules']) == 0:
+                    ret[org_id].pop(ruleset_id)
+
+            return ret
+        else:
+            return {
+                "error": "organization is refreshing, cannot query."
+            }
 
     elif request.method == 'PUT':
         # Update the rule in-place.
@@ -466,7 +562,7 @@ def rule() -> Dict:
         if request_data and _ensure_args(request_data, 'ruleset_id', 'data') and request_data['ruleset_id']:
             ruleset_id = request_data['ruleset_id']
             data = request_data['data']
-            org_id = tsctl.tsctl.plan(state_file_path, show=False)['workspace']
+            org_id = get_workspace()
             if not org_id:
                 return {
                     "error": "must set workspace before you can post new rules."
