@@ -115,11 +115,10 @@ class State:
                     # It's a new ruleset, the result of a copy or creation. We need to strip out any rules in the
                     # JSON that are `-localonly` as well, because the platform won't know what to do with them.
                     localonly_rules = ruleset_data['rules']
-                    ruleset_data['rules'] = []
+                    ruleset_data['ruleIds'] = []
                     logging.info(f'Creating ruleset: {ruleset_id}')
                     try:
                         ruleset_response = api.post_ruleset(ruleset_data)
-                        print(ruleset_response)
                         new_ruleset_id = ruleset_response['id']
                         logging.debug(f'New ruleset ID: {new_ruleset_id}')
                     except URLError as msg:
@@ -137,6 +136,9 @@ class State:
                         logging.info(f'Creating rule: {rule_id}')
                         try:
                             rule_response = api.post_rule(new_ruleset_id, rule_data)
+                            if 'errors' in rule_response:
+                                logging.error(rule_response)
+                                continue
                             state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'tags'
                             new_rule_id = rule_response['id']
                             shutil.move(rule_dir, f'{ruleset_dir}{new_rule_id}/')
@@ -168,7 +170,7 @@ class State:
                 else:
                     # It's a ruleset that already existed, but there could be `-localonly` (new) rules on it.
                     localonly_rules = [rule_id for rule_id in ruleset_data['rules'] if rule_id.endswith(self._postfix)]
-                    ruleset_data['rules'] = [rule_id for rule_id in ruleset_data['rules'] if not rule_id.endswith(self._postfix)]
+                    ruleset_data['ruleIds'] = [rule_id for rule_id in ruleset_data['rules'] if not rule_id.endswith(self._postfix)]
 
                     if state['organizations'][self.org_id][ruleset_id]['modified'] == 'true':
                         try:

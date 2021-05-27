@@ -214,6 +214,11 @@ class API:
             for field in ('updatedAt', 'createdAt'):
                 if field in response:
                     response.pop(field)
+            # FIXME: Fix a weird problem with our API field names. Again, I want to store these data in POSTable format.
+            #
+            if 'rules' in response:
+                response['ruleIds'] = response['rules']
+                response.pop('rules')
         return response
 
     def get_ruleset_rules(self, ruleset_id: str) -> Optional[Dict]:

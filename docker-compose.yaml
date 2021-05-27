@@ -17,8 +17,8 @@ services:
           memory: "250M"
     container_name: rule-manager-backend
     # Uncomment the following if you're testing and you'd like to skip setting a workspace (saves time).
-    #volumes:
-    #  - ~/.threatstack/:/root/.threatstack/
+    volumes:
+      - ~/.threatstack/:/root/.threatstack/
   app:
     image: "rule-viewer:latest"
     build: app/

@@ -4,7 +4,7 @@ Manage a timeline of commits and branches that SEs will be working in and on rel
 
 from typing import List, Optional
 
-from git import Git
+import git
 
 
 def initialize_repo(directory: str, git_url: str) -> Optional[List]:
@@ -18,8 +18,12 @@ def initialize_repo(directory: str, git_url: str) -> Optional[List]:
     Returns:
         A list of the files and directories, once it's been completed. Or None.
     """
-    repo = Git(directory)
-    print(repo.clone(git_url))
+    repo = git.Git(directory)
+    try:
+        repo.clone(git_url)
+    except git.exc.GitCommandError as msg:
+        # The repo already exists locally.
+        pass
 
 
 def checkout_branch(branch_name: str) -> Optional[str]:
