@@ -234,7 +234,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/rule?tags=true&type=file",
+							"raw": "http://localhost:8000/rule?tags=true&enabled=false&type=cloudtrail",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -249,12 +249,16 @@
 									"value": "true"
 								},
 								{
+									"key": "enabled",
+									"value": "false"
+								},
+								{
 									"key": "type",
-									"value": "file"
+									"value": "cloudtrail"
 								}
 							]
 						},
-						"description": "Acceptable query parameters include\n\n* `rule_id`, to query by or return specific rule IDs;\n* `severity`, to query across the entire organization's locally-cached state by severity;\n* `type`, to query across the entire organization by rule type;\n* `enabled`, to filter returned results from the former parameters by whether or not the rules are enabled; and,\n* `tags`, an additional option (defaults to `false`) a user to can use to select whether or not to return tag data.\n\nAll are optional args, but you cannot filter by more than one of `rule_id`, `severity`, or `type` or you'll receive a returned payload containing an `error` message. \n\n`enabled` can, however, be applied to filter any returned results of the former params, or be used to filter across the entire organization for enabled or disabled rules.\n\n`tags` is an additional optional field that defaults, again, to `false`, that a user can use to return tag data with the rule objects."
+						"description": "Acceptable query parameters include\n\n* `rule_id`, to query by or return specific rule IDs;\n* `severity`, to query across the entire organization's locally-cached state by severity;\n* `type`, to query across the entire organization by rule type;\n* `enabled`, to filter returned results from the former parameters by whether or not the rules are enabled; and,\n* `tags`, an additional option (defaults to `false`) a user to can use to select whether or not to return tag data.\n\nAll are optional args, but you cannot filter by more than one of `rule_id`, `severity`, or `type` or you'll receive a returned payload containing an `error` message. \n\n`enabled` can, however, be applied to filter any returned results of the former params, or be used to filter across the entire organization for enabled or disabled rules."
 					},
 					"response": []
 				},
@@ -293,7 +297,7 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/rule",
+							"raw": "http://localhost:8000/rule?rule_id=6c2c5fd9-d63c-11e9-bc18-3b939bb3754a",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -301,8 +305,15 @@
 							"port": "8000",
 							"path": [
 								"rule"
+							],
+							"query": [
+								{
+									"key": "rule_id",
+									"value": "6c2c5fd9-d63c-11e9-bc18-3b939bb3754a"
+								}
 							]
-						}
+						},
+						"description": "`rule_id` is a required field, and multiple `rule_id`s can be specified.\n\nReturns the plan, once a rule has been deleted."
 					},
 					"response": []
 				},
@@ -489,7 +500,8 @@
 							"path": [
 								"workspace"
 							]
-						}
+						},
+						"description": "Set `workspace` in the state file. This is the default organization within which state changes are made, unless copying rules or rulesets out of the current workspace.\n\nIf the organization's directory does not already exist in the state directory, this request can take a few minutes to complete as the backend refreshes. Otherwise, the workspace is modified to point at the existing directory (no refresh). An explicit `/refresh` call would have to be made to update the contents of the organization's local state."
 					},
 					"response": []
 				},

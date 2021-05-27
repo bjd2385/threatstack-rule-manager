@@ -464,7 +464,7 @@ def rule() -> Dict:
             }
 
         rule_ids = request.args.getlist('rule_id')
-        rule_type = request.args.get('rule_type')
+        rule_type = request.args.get('type')
         rule_severity = request.args.get('severity')
         enabled = request.args.get('enabled')
         tags = request.args.get('tags')
@@ -472,7 +472,7 @@ def rule() -> Dict:
         # Ensure the request args conform to accepted values.
         if rule_ids and rule_type or rule_type and rule_severity or rule_ids and rule_severity:
             return {
-                "error": "Must specify only one query parameter of 'rule_id', 'rule_type', or 'severity'."
+                "error": "Cannot specify more than one of 'rule_id', 'rule_type', or 'severity' query parameters."
             }
 
         # TODO: Somehow make this list importable, or easier to maintain as more rule types are added or removed from
@@ -489,6 +489,7 @@ def rule() -> Dict:
         #}
 
         organization = new_state()
+
         if tags:
             if tags not in ['true', 'false']:
                 return {
@@ -501,7 +502,8 @@ def rule() -> Dict:
         if rule_ids:
             ret = organization.lst_api(tags=_tags, rule_ids=rule_ids, full_data=True)
         elif rule_type:
-            ret = organization.lst_api(tags=_tags, typ=cast(RuleType, rule_type.lower()), full_data=True)
+            rule_type = cast(Optional[RuleType], rule_type.lower())
+            ret = organization.lst_api(tags=_tags, typ=rule_type, full_data=True)
         elif rule_severity:
             ret = organization.lst_api(tags=_tags, severity=rule_severity, full_data=True)
         else:
@@ -509,38 +511,38 @@ def rule() -> Dict:
             # containing rulesets.
             ret = organization.lst_api(tags=_tags, full_data=True)
 
+        if not ret:
+            return {
+                "error": "organization is refreshing, cannot query."
+            }
+
         if enabled:
             if enabled not in ['true', 'false']:
                 return {
                     "error": "'enabled' must either be 'true' or 'false."
                 }
             if enabled == 'true':
-                for ruleset_id in ret[org_id]:
-                    for rule_id in ret[org_id][ruleset_id]['rules']:
-                        if not ret[org_id][ruleset_id]['rules'][rule_id]['enabled']:
-                            ret[org_id][ruleset_id].pop(rule_id)
-                            if not ret[org_id][ruleset_id]:
+                for ruleset_id in list(ret[org_id]):
+                    for rule_id in list(ret[org_id][ruleset_id]['rules']):
+                        if not ret[org_id][ruleset_id]['rules'][rule_id]['data']['enabled']:
+                            ret[org_id][ruleset_id]['rules'].pop(rule_id)
+                            if not ret[org_id][ruleset_id]['rules']:
                                 ret[org_id].pop(ruleset_id)
             elif enabled == 'false':
                 # Reversed logic on filtering as 'true'.
-                for ruleset_id in ret[org_id]:
-                    for rule_id in ret[org_id][ruleset_id]['rules']:
-                        if ret[org_id][ruleset_id]['rules'][rule_id]['enabled']:
-                            ret[org_id][ruleset_id].pop(rule_id)
-                            if not ret[org_id][ruleset_id]:
+                for ruleset_id in list(ret[org_id]):
+                    for rule_id in list(ret[org_id][ruleset_id]['rules']):
+                        if ret[org_id][ruleset_id]['rules'][rule_id]['data']['enabled']:
+                            ret[org_id][ruleset_id]['rules'].pop(rule_id)
+                            if not ret[org_id][ruleset_id]['rules']:
                                 ret[org_id].pop(ruleset_id)
 
-        if ret:
-            # Remove empty rulesets due to rule filtering.
-            for ruleset_id in list(ret[org_id]):
-                if len(ret[org_id][ruleset_id]['rules']) == 0:
-                    ret[org_id].pop(ruleset_id)
+        # Remove empty rulesets due to rule filtering.
+        for ruleset_id in list(ret[org_id]):
+            if len(ret[org_id][ruleset_id]['rules']) == 0:
+                ret[org_id].pop(ruleset_id)
 
-            return ret
-        else:
-            return {
-                "error": "organization is refreshing, cannot query."
-            }
+        return ret
 
     elif request.method == 'PUT':
         # Update the rule in-place.
@@ -623,7 +625,7 @@ def ruleset() -> Dict:
     """
     Depending on the method of request, either
 
-    • Get a list of rulesets,
+    • Get a list of rulesets (no rule data),
     • Update a ruleset's JSON,
 
     {

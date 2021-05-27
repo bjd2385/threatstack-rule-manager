@@ -913,9 +913,8 @@ class State:
         for ruleset_id in ruleset_list:
             ruleset_dir = self.organization_dir + ruleset_id + '/'
             ruleset_data = read_json(ruleset_dir + 'ruleset.json')
-            ruleset_name = ruleset_data['name']
             ruleset = {
-                'name': ruleset_name,
+                'data': ruleset_data,
                 'rules': dict()
             }
             for rule_id in os.listdir(ruleset_dir):
@@ -926,16 +925,20 @@ class State:
                     # Filter the rule list by query params (provided from the API request params).
                     if rule_ids and rule_id not in rule_ids:
                         continue
-                    elif severity and rule_data['severity'] != severity:
+                    elif severity and rule_data['severityOfAlerts'] != severity:
                         continue
                     elif typ and rule_data['type'].lower() != typ:
                         continue
 
                     if full_data:
-                        ruleset['rules'][rule_id] = rule_data
+                        ruleset['rules'][rule_id] = {}
+                        ruleset['rules'][rule_id]['data'] = rule_data
                     else:
                         rule_name = rule_data['name']
-                        ruleset['rules'][rule_id]['name'] = rule_name
+                        ruleset['rules'][rule_id] = {}
+                        ruleset['rules'][rule_id]['data'] = {}
+                        ruleset['rules'][rule_id]['data']['name'] = rule_name
+
                     if tags:
                         ruleset['rules'][rule_id]['tags'] = read_json(rule_dir + 'tags.json')
 
