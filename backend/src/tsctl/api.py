@@ -194,9 +194,7 @@ class API:
         Returns:
             A dictionary of rulesets and their rules.
         """
-        response = self._get('https://api.threatstack.com/v2/rulesets')
-
-        if 'errors' not in response:
+        if (response := self._get('https://api.threatstack.com/v2/rulesets')) and 'errors' not in response:
             # Due to an inconsistency in field name, remove 'rules'; cf. `get_ruleset` and `get_ruleset_rules` for a
             # similar callout.
             rulesets = []
@@ -221,14 +219,14 @@ class API:
         Returns:
             The ruleset and rule IDs thereunder.
         """
-        if response := self._get(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}'):
+        if (response := self._get(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}')) and 'errors' not in response:
             for field in ('updatedAt', 'createdAt'):
                 if field in response:
                     response.pop(field)
 
-        # Fix an inconsistency with our returned field names. Again, I want to store these data in POSTable format.
-        response['ruleIds'] = response['rules']
-        response.pop('rules')
+            # Fix an inconsistency with our returned field names. Again, I want to store these data in POSTable format.
+            response['ruleIds'] = response['rules']
+            response.pop('rules')
 
         return response
 
@@ -244,7 +242,7 @@ class API:
         Returns:
             The ruleset and a verbose listing of the rules underneath it.
         """
-        if response := self._get(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules'):
+        if (response := self._get(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules')) and 'errors' not in response:
             # Filter rules' fields.
             for i, rule in enumerate(response['rules']):
                 # Remove non-POSTable fields by
@@ -253,10 +251,10 @@ class API:
                     if field in response['rules'][i]:
                         response['rules'][i].pop(field)
 
-        # As with `get_ruleset` above, this endpoint is also plagued by an inconsistency in returned field name that
-        # is not POSTable.
-        response['ruleIds'] = response['rules']
-        response.pop('rules')
+            # As with `get_ruleset` above, this endpoint is also plagued by an inconsistency in returned field name that
+            # is not POSTable.
+            response['ruleIds'] = response['rules']
+            response.pop('rules')
 
         return response
 
@@ -273,7 +271,7 @@ class API:
         Returns:
             The rule data.
         """
-        if response := self._get(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules/{rule_id}'):
+        if (response := self._get(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules/{rule_id}')) and 'errors' not in response:
             for field in ('id', 'rulesetId', 'updatedAt', 'createdAt'):
                 if field in response:
                     response.pop(field)
@@ -292,7 +290,7 @@ class API:
         Returns:
             The tag data.
         """
-        if response := self._get(f'https://api.threatstack.com/v2/rules/{rule_id}/tags'):
+        if (response := self._get(f'https://api.threatstack.com/v2/rules/{rule_id}/tags')) and 'errors' not in response:
             for field in ('errors',):
                 if field in response:
                     response.pop(field)
@@ -344,11 +342,10 @@ class API:
         Returns:
             The response from the platform when the request is successful, nothing otherwise.
         """
-        if response := self._put(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}', data):
-            if 'errors' not in response:
-                for field in ('createdAt', 'updatedAt'):
-                    if field in response:
-                        data.pop(field)
+        if (response := self._put(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}', data)) and 'errors' not in response:
+            for field in ('createdAt', 'updatedAt'):
+                if field in response:
+                    data.pop(field)
 
         return response
 
@@ -366,7 +363,7 @@ class API:
         Returns:
             The response from the platform when the request is successful, nothing otherwise.
         """
-        if response := self._put(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules/{rule_id}', data):
+        if (response := self._put(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules/{rule_id}', data)) and 'errors' not in response:
             for field in ('createdAt', 'updatedAt', 'rulesetId'):
                 if field in response:
                     response.pop(field)
@@ -486,11 +483,10 @@ class API:
             The newly-generated rule's JSON, including its platform-assigned ID that should be propagated back through
             local directory structure (through renaming the directories).
         """
-        if (response := self._post(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules', data)):
-            if 'errors' not in response:
-                for field in ('createdAt', 'updatedAt', 'rulesetId'):
-                    if field in response:
-                        response.pop(field)
+        if (response := self._post(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules', data)) and 'errors' not in response:
+            for field in ('createdAt', 'updatedAt', 'rulesetId'):
+                if field in response:
+                    response.pop(field)
 
         return response
 
@@ -507,7 +503,7 @@ class API:
             The newly-generated rulesets JSON, including its platform-assigned ID that should be propagated back
             through local directory structure (through renaming the directories).
         """
-        if response := self._post(f'https://api.threatstack.com/v2/rulesets', data):
+        if (response := self._post(f'https://api.threatstack.com/v2/rulesets', data)) and 'errors' not in response:
             for field in ('createdAt', 'updatedAt'):
                 if field in response:
                     response.pop(field)
