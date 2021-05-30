@@ -186,8 +186,7 @@ class API:
 
     def get_rulesets(self) -> Optional[Dict]:
         """
-        Return a list of rulesets and rules thereunder. This isn't meant to return an object in a POSTable format,
-        unlike other methods.
+        Return a list of rulesets and rules thereunder.
 
         https://apidocs.threatstack.com/v2/rule-sets-and-rules/list-ruleset
 
@@ -283,6 +282,12 @@ class API:
             for field in ('id', 'rulesetId', 'updatedAt', 'createdAt'):
                 if field in response:
                     response.pop(field)
+
+            # Remove non-POSTable aggregate fields that TS has apparently deprecated.
+            if 'aggregateFields' in rule:
+                for field in ('rule_id',):
+                    if field in rule['aggregateFields']:
+                        rule['aggregateFields'].remove(field)
 
         return response
 
