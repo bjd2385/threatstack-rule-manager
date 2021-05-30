@@ -13,7 +13,7 @@ def initialize_repo(directory: str, git_url: str) -> Optional[List]:
 
     Args:
         directory: location to clone the repo into.
-        upstream_url: location to pull the repo from.
+        git_url: Upstream Git repo to pull down and commit changes on.
 
     Returns:
         A list of the files and directories, once it's been completed. Or None.

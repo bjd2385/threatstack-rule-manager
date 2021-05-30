@@ -51,9 +51,11 @@ Remember to commit and push your changes on '/home/brandon/.threatstack/' to a g
 
 ```
 
+## Install
+
 ### Run the Container
 
-To successfully start the container, you must define environment variables `USER_ID` and `API_KEY`, which will be used to interact with the Threat Stack platform.
+This is the preferred deployment strategy. To successfully start the container, you must define environment variables `USER_ID` and `API_KEY`, which will be used to interact with the Threat Stack platform.
 ```shell
 $ docker run -it -d -e 'API_KEY=<your-key>' -e 'USER_ID=<your-key>' -p 8000:8000 --name ts-rule-manager rule-manager:latest
 814b24dbd26463a9ea96ca256f08bc5f9a8b566670c7b8ea42e362d2e7823163
@@ -67,6 +69,23 @@ By default, the container listens on port `8000` on all available interfaces. Th
 #### API
 
 Running the container starts the Flask-based API. Please view the [public documentation](https://documenter.getpostman.com/view/8527107/TzXtHfYj) (via Postman) and import the Postman library (in [src/tests/postman/](src/tests/postman/tsctl%20backend%20Flask%20API.postman_collection.json)) to test requests against the API directly. Or, start the frontend container to interact visually with the API.
+
+### Host-based Installation
+
+Clone out this repository and check out the latest tag for a stable version, or download the latest release, followed by
+```shell
+$ pip install -r requirements.txt
+$ python setup.py install
+```
+Following these steps, you should have the `tsctl` executable in your `$PATH`, and you can start by setting the workspace (organization).
+```shell
+$ tsctl --workspace <organization-id>
+$ tsctl --plan
+{
+  "workspace": "<organization-id>",
+  "organizations": {}
+}
+```
 
 ### FAQs
 
@@ -110,4 +129,4 @@ In other words, it is a hierarchy of organizations, rulesets, and rules. Require
 5. Bash autocompletions would be cool.
 6. Ensure logging includes source and destination rule/ruleset IDs, so we know where `*-localonly` copies came from for reproducibility. Probably `DEBUG` loglevel.
 7. Add a db for faster/better lookups than just plain directory traversal.
-8. Might need to look into `refresh` locks, so multiple refresh requests aren't made at the same time. This could be enforced in front end React state, but...
+8. Might need to look into `refresh` locks, so multiple refresh requests aren't made at the same time. This could be enforced in front end React state, but..
