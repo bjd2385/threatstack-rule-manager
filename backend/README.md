@@ -87,7 +87,7 @@ $ tsctl --plan
 }
 ```
 
-### FAQs
+## FAQs
 
 #### How is drift between local and remote (platform) state tracked?
 
@@ -115,7 +115,7 @@ In other words, it is a hierarchy of organizations, rulesets, and rules. Require
 * unique ruleset names and IDs, organization-wide, and
 * unique rule names and IDs, organization-wide.
 
-### Development Notes
+## Development Notes
 
 * Be sure to increment [`src/tsctl/__init__.__version__`](src/tsctl/__init__.py) when producing new releases. This is referenced while calling `--version`, as well as during the build process with `setuptools`.
 
