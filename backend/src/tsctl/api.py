@@ -196,6 +196,17 @@ class API:
         """
         response = self._get('https://api.threatstack.com/v2/rulesets')
 
+        if 'errors' not in response:
+            # Due to an inconsistency in field name, remove 'rules'; cf. `get_ruleset` and `get_ruleset_rules` for a
+            # similar callout.
+            rulesets = []
+            for ruleset in response['rulesets']:
+                ruleset_id = ruleset['id']
+                ruleset['ruleIds'] = ruleset['rules']
+                ruleset.pop('rules')
+                rulesets.append(ruleset)
+            response['rulesets'] = rulesets
+
         return response
 
     def get_ruleset(self, ruleset_id: str) -> Optional[Dict]:
@@ -214,11 +225,11 @@ class API:
             for field in ('updatedAt', 'createdAt'):
                 if field in response:
                     response.pop(field)
-            # FIXME: Fix a weird problem with our API field names. Again, I want to store these data in POSTable format.
-            #
-            if 'rules' in response:
-                response['ruleIds'] = response['rules']
-                response.pop('rules')
+
+        # Fix an inconsistency with our returned field names. Again, I want to store these data in POSTable format.
+        response['ruleIds'] = response['rules']
+        response.pop('rules')
+
         return response
 
     def get_ruleset_rules(self, ruleset_id: str) -> Optional[Dict]:
@@ -242,6 +253,11 @@ class API:
                     if field in response['rules'][i]:
                         response['rules'][i].pop(field)
 
+        # As with `get_ruleset` above, this endpoint is also plagued by an inconsistency in returned field name that
+        # is not POSTable.
+        response['ruleIds'] = response['rules']
+        response.pop('rules')
+
         return response
 
     def get_rule(self, ruleset_id: str, rule_id: str) -> Optional[Dict]:
@@ -264,7 +280,7 @@ class API:
 
         return response
 
-    def get_rule_tags(self, rule_id) -> Optional[Dict]:
+    def get_rule_tags(self, rule_id: str) -> Optional[Dict]:
         """
         Get tags on a rule.
 
@@ -309,7 +325,7 @@ class API:
             return response.json()
         except json.JSONDecodeError:
             if response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
-                raise RateLimitedError(delay=float(response.headers['x-rate-limit-reset']) / 1_000)
+                raise RateLimitedError(delay=float(response.headers['x-rate-limit-reset']) / 1_000 + 0.25)
             else:
                 raise URLError(
                     f'Did not get valid JSON in response: {response.text if response.text else response.reason} ~ {response.status_code}'
@@ -329,9 +345,10 @@ class API:
             The response from the platform when the request is successful, nothing otherwise.
         """
         if response := self._put(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}', data):
-            for field in ('createdAt', 'updatedAt'):
-                if field in response:
-                    data.pop(field)
+            if 'errors' not in response:
+                for field in ('createdAt', 'updatedAt'):
+                    if field in response:
+                        data.pop(field)
 
         return response
 
@@ -383,7 +400,7 @@ class API:
             return response.json()
         except json.JSONDecodeError:
             if response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
-                raise RateLimitedError(delay=float(response.headers['x-rate-limit-reset']) / 1_000)
+                raise RateLimitedError(delay=float(response.headers['x-rate-limit-reset']) / 1_000 + 0.25)
             else:
                 raise URLError(
                     f'Did not get valid JSON in response: {response.text if response.text else response.reason} ~ {response.status_code}'
@@ -449,7 +466,7 @@ class API:
             return response.json()
         except json.JSONDecodeError:
             if response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
-                raise RateLimitedError(delay=float(response.headers['x-rate-limit-reset']) / 1_000)
+                raise RateLimitedError(delay=float(response.headers['x-rate-limit-reset']) / 1_000 + 0.25)
             else:
                 raise URLError(
                     f'Did not get valid JSON in response: {response.text if response.text else response.reason} ~ {response.status_code}'
@@ -469,11 +486,11 @@ class API:
             The newly-generated rule's JSON, including its platform-assigned ID that should be propagated back through
             local directory structure (through renaming the directories).
         """
-        response = self._post(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules', data)
-
-        for field in ('createdAt', 'updatedAt', 'rulesetId'):
-            if field in response:
-                response.pop(field)
+        if (response := self._post(f'https://api.threatstack.com/v2/rulesets/{ruleset_id}/rules', data)):
+            if 'errors' not in response:
+                for field in ('createdAt', 'updatedAt', 'rulesetId'):
+                    if field in response:
+                        response.pop(field)
 
         return response
 

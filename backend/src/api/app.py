@@ -70,7 +70,7 @@ def new_state(org_id: Optional[str] =None) -> Optional[tsctl.tsctl.State]:
                 org_id=org_id
             )
         else:
-            return
+            return None
 
 
 def _ensure_args(request_data: Dict, *args: str) -> bool:
@@ -373,17 +373,17 @@ def copy() -> Dict:
     Returns:
         The state file, following the copies.
     """
+    if (organization := new_state()) is None:
+        return {
+            "error": "must set workspace before copying."
+        }
+
     request_data = request.get_json()
     if request_data:
         destination_organization: Optional[str] = None
         if _ensure_args(request_data, 'destination_organization'):
             # All copies should be made to another organization, not to the current workspace.
             destination_organization = request_data['destination_organization']
-
-        if (organization := new_state()) is None:
-            return {
-                "error": "must set workspace before copying."
-            }
 
         if _ensure_args(request_data, 'rules'):
             for rule in request_data['rules']:
@@ -488,6 +488,11 @@ def rule() -> Dict:
     Returns:
         The updated state file, minus workspace, to show the update that took place.
     """
+    if (organization := new_state()) is None:
+        return {
+            "error": "must set workspace before you can create rules."
+        }
+
     if request.method == 'GET':
         # Get rule(s') JSON in the current workspace. The following `getlist` calls yield empty lists if there are no
         # key instances present in the args MultiDict instance.
@@ -521,8 +526,6 @@ def rule() -> Dict:
         #    }
         #}
 
-        organization = new_state()
-
         if tags:
             if tags not in ['true', 'false']:
                 return {
@@ -533,16 +536,16 @@ def rule() -> Dict:
             _tags = False
 
         if rule_ids:
-            ret = organization.lst_api(tags=_tags, rule_ids=rule_ids, full_data=True)
+            ret = organization.lst_api_rules(tags=_tags, rule_ids=rule_ids, full_data=True)
         elif rule_type:
             rule_type = cast(Optional[RuleType], rule_type.lower())
-            ret = organization.lst_api(tags=_tags, typ=rule_type, full_data=True)
+            ret = organization.lst_api_rules(tags=_tags, typ=rule_type, full_data=True)
         elif rule_severity:
-            ret = organization.lst_api(tags=_tags, severity=rule_severity, full_data=True)
+            ret = organization.lst_api_rules(tags=_tags, severity=rule_severity, full_data=True)
         else:
             # No filtering by optional (exclusive) fields, just return an entire organization's-worth of rules and
             # containing rulesets.
-            ret = organization.lst_api(tags=_tags, full_data=True)
+            ret = organization.lst_api_rules(tags=_tags, full_data=True)
 
         if not ret:
             return {
@@ -581,10 +584,6 @@ def rule() -> Dict:
         # Update the rule in-place.
         request_data = request.get_json()
         if request_data and _ensure_args(request_data, 'rule_id', 'data'):
-            if (organization := new_state()) is None:
-                return {
-                    "error": "must set workspace before you can update rules."
-                }
             rule_id = request_data['rule_id']
             rule_data = request_data['data']
             organization.update_rule(rule_id, rule_data)
@@ -594,36 +593,27 @@ def rule() -> Dict:
     elif request.method == 'POST':
         # Create a new rule.
         request_data = request.get_json()
-        if request_data and _ensure_args(request_data, 'ruleset_id', 'data') and request_data['ruleset_id']:
+        if request_data and _ensure_args(request_data, 'ruleset_id', 'data'):
+            rule_name_postfix = None
+            if _ensure_args(request_data, 'rule_name_postfix'):
+                rule_name_postfix = request_data['rule_name_postfix']
+
             ruleset_id = request_data['ruleset_id']
             data = request_data['data']
-            org_id = get_workspace()
-            if not org_id:
-                return {
-                    "error": "must set workspace before you can post new rules."
-                }
-            if (organization := new_state()) is None:
-                return {
-                    "error": "must set workspace before you can create rules."
-                }
+
             for update in data:
                 rule_data = update['rule']
                 if 'tags' in update:
                     tags_data = update['tags']
                 else:
                     tags_data = None
-                organization.create_rule(ruleset_id, rule_data, tags_data)
+                organization.create_rule(ruleset_id, rule_data, tags_data, name_postfix=rule_name_postfix)
             return tsctl.tsctl.plan(state_file_path, show=False)
         else:
             abort(HTTPStatus.BAD_REQUEST)
 
     elif request.method == 'DELETE':
         # Delete rule(s).
-        if not (organization := new_state()):
-            return {
-                "error": "Must set workspace prior to deleting rules."
-            }
-
         rule_ids = request.args.getlist('rule_id')
 
         if not rule_ids:
@@ -653,12 +643,13 @@ def update_tags() -> Dict:
     Returns:
         The updated tags' JSON.
     """
+    if (organization := new_state()) is None:
+        return {
+            "error": "must set workspace before you can update tags."
+        }
+
     request_data = request.get_json()
     if request_data and _ensure_args(request_data, 'rule_id', 'data'):
-        if (organization := new_state()) is None:
-            return {
-                "error": "must set workspace before you can update tags."
-            }
         rule_id = request_data['rule_id']
         tags_data = request_data['data']
         organization.create_tags(rule_id, tags_data)
@@ -671,7 +662,7 @@ def ruleset() -> Dict:
     """
     Depending on the method of request, either
 
-    • Get a list of rulesets (no rule data),
+    • Get a list of rulesets (no rule data, just ruleIds),
     • Update a ruleset's JSON,
 
     {
@@ -694,17 +685,69 @@ def ruleset() -> Dict:
     Returns:
         The updated state file, minus workspace, to show the update that took place.
     """
+    if (organization := new_state()) is None:
+        return {
+            "error": "must set workspace before you can create rulesets."
+        }
+
     if request.method == 'GET':
-        ...
+        # There are no accepted args on this endpoint, so just return a list of all rulesets. The `rule` GET endpoint
+        # is a bit more powerful on its searching capabilities.
+        if (ruleset_data := organization.lst_api_rulesets()):
+            return ruleset_data
+        else:
+            return {
+                "error": "organization is refreshing, cannot query."
+            }
 
     elif request.method == 'PUT':
-        ...
+        # Update a ruleset.
+        request_data = request.get_json()
+        if request_data and _ensure_args(request_data, 'data', 'ruleset_id') and _ensure_args(request_data['data'], 'name', 'description', 'ruleIds'):
+            ruleset_id = request_data['ruleset_id']
+            data = request_data['data']
+            if not organization.update_ruleset(ruleset_id, data):
+                return {
+                    "error": f"ruleset ID '{ruleset_id}' not found."
+                }
+        else:
+            abort(HTTPStatus.BAD_REQUEST)
 
     elif request.method == 'POST':
-        ...
+        # Create a new ruleset.
+        request_data = request.get_json()
+        if request_data and _ensure_args(request_data, 'name', 'description', 'ruleIds'):
+            ruleset_name = request_data['name']
+            ruleset_desc = request_data['description']
+            ruleset_rule_ids = request_data['ruleIds']
+
+            data = {
+                "name": ruleset_name,
+                "description": ruleset_desc,
+                "ruleIds": ruleset_rule_ids
+            }
+
+            # Read in the optional ruleset name postfix to append if the ruleset name already occurs (to make it a legal
+            # ruleset creation).
+            ruleset_name_postfix = None
+            if _ensure_args(request_data, 'ruleset_name_postfix'):
+                ruleset_name_postfix = request_data['ruleset_name_postfix']
+
+            organization.create_ruleset(data, name_postfix=ruleset_name_postfix)
+        else:
+            abort(HTTPStatus.BAD_REQUEST)
 
     elif request.method == 'DELETE':
-        ...
+        # Delete ruleset(s).
+        ruleset_ids = request.args.getlist('ruleset_id')
+
+        if not ruleset_ids:
+            return {
+                "error": "Must submit at least one ruleset ID to delete."
+            }
+
+        for ruleset_id in ruleset_ids:
+            organization.delete_ruleset(ruleset_id)
 
     return tsctl.tsctl.plan(state_file_path, show=False)
 

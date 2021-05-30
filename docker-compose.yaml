@@ -12,11 +12,12 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: "500M"
+          memory: "750M"
         reservations:
-          memory: "250M"
+          memory: "5000M"
     container_name: rule-manager-backend
-    # Uncomment the following if you're testing and you'd like to skip setting a workspace (saves time).
+    # Comment out the following if you're running this in prod. For testing purposes, however, it saves you the time
+    # it would take to perform a refresh to pull down remote state (to run your tests).
     volumes:
       - ~/.threatstack/:/root/.threatstack/
   app:
@@ -32,8 +33,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.25"
-          memory: "250M"
+          cpus: "0.5"
+          memory: "5000M"
         reservations:
-          memory: "120M"
+          memory: "250M"
     container_name: rule-manager-app

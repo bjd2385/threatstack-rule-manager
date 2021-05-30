@@ -114,7 +114,7 @@ class State:
                 if ruleset_id.endswith(self._postfix):
                     # It's a new ruleset, the result of a copy or creation. We need to strip out any rules in the
                     # JSON that are `-localonly` as well, because the platform won't know what to do with them.
-                    localonly_rules = ruleset_data['rules']
+                    localonly_rules = ruleset_data['ruleIds']
                     ruleset_data['ruleIds'] = []
                     logging.info(f'Creating ruleset: {ruleset_id}')
                     try:
@@ -139,20 +139,20 @@ class State:
                             if 'errors' in rule_response:
                                 logging.error(rule_response)
                                 continue
-                            state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'tags'
+                            state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = 'tags'
                             new_rule_id = rule_response['id']
                             shutil.move(rule_dir, f'{ruleset_dir}{new_rule_id}/')
-                            ruleset_data['rules'].append(new_rule_id)
+                            ruleset_data['ruleIds'].append(new_rule_id)
                         except URLError as msg:
                             # Request to update failed, remain tracking in state file.
                             continue
 
                         try:
                             api.post_tags(new_rule_id, tags_data)
-                            if state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'tags':
-                                state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
+                            if state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'tags':
+                                state['organizations'][self.org_id][ruleset_id]['ruleIds'].pop(rule_id)
                             else:
-                                state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'rule'
+                                state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = 'rule'
                         except URLError:
                             continue
 
@@ -160,7 +160,7 @@ class State:
                     shutil.move(ruleset_dir, new_ruleset_dir)
                     write_json(new_ruleset_dir + 'ruleset.json', ruleset_data)
 
-                    if len(state['organizations'][self.org_id][ruleset_id]['rules']) == 0:
+                    if len(state['organizations'][self.org_id][ruleset_id]['ruleIds']) == 0:
                         state['organizations'][self.org_id].pop(ruleset_id)
                     else:
                         # Update the state file to the new ruleset ID, there are still `-localonly` rules, be it a tags
@@ -169,8 +169,8 @@ class State:
                         state['organizations'][self.org_id].pop(ruleset_id)
                 else:
                     # It's a ruleset that already existed, but there could be `-localonly` (new) rules on it.
-                    localonly_rules = [rule_id for rule_id in ruleset_data['rules'] if rule_id.endswith(self._postfix)]
-                    ruleset_data['ruleIds'] = [rule_id for rule_id in ruleset_data['rules'] if not rule_id.endswith(self._postfix)]
+                    localonly_rules = [rule_id for rule_id in ruleset_data['ruleIds'] if rule_id.endswith(self._postfix)]
+                    ruleset_data['ruleIds'] = [rule_id for rule_id in ruleset_data['ruleIds'] if not rule_id.endswith(self._postfix)]
 
                     if state['organizations'][self.org_id][ruleset_id]['modified'] == 'true':
                         try:
@@ -197,20 +197,20 @@ class State:
 
                         try:
                             rule_response = api.post_rule(ruleset_id, rule_data)
-                            state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'tags'
+                            state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = 'tags'
                             new_rule_id = rule_response['id']
                             shutil.move(rule_dir, f'{ruleset_dir}{new_rule_id}/')
-                            ruleset_data['rules'].append(new_rule_id)
+                            ruleset_data['ruleIds'].append(new_rule_id)
                         except URLError:
                             # Request to update failed, remain tracking in state file.
                             continue
 
                         try:
                             api.post_tags(new_rule_id, tags_data)
-                            if state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'tags':
-                                state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
+                            if state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'tags':
+                                state['organizations'][self.org_id][ruleset_id]['ruleIds'].pop(rule_id)
                             else:
-                                state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'rule'
+                                state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = 'rule'
                         except URLError:
                             continue
 
@@ -218,47 +218,47 @@ class State:
                     write_json(ruleset_dir + 'ruleset.json', ruleset_data)
 
                     # Now loop over rules that exist in the platform, but need to be modified in some fashion.
-                    for rule_id in list(state['organizations'][self.org_id][ruleset_id]['rules']):
+                    for rule_id in list(state['organizations'][self.org_id][ruleset_id]['ruleIds']):
                         rule_dir = f'{ruleset_dir}{rule_id}/'
 
-                        if state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'rule':
+                        if state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'rule':
                             rule_data = read_json(rule_dir + 'rule.json')
                             try:
                                 api.put_rule(ruleset_id, rule_id, rule_data)
-                                state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
+                                state['organizations'][self.org_id][ruleset_id]['ruleIds'].pop(rule_id)
                             except URLError:
                                 continue
-                        elif state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'tags':
+                        elif state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'tags':
                             tags_data = read_json(rule_dir + 'tags.json')
                             try:
                                 api.post_tags(rule_id, tags_data)
-                                state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
+                                state['organizations'][self.org_id][ruleset_id]['ruleIds'].pop(rule_id)
                             except URLError:
                                 continue
-                        elif state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'both':
+                        elif state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'both':
                             rule_data = read_json(rule_dir + 'rule.json')
                             tags_data = read_json(rule_dir + 'tags.json')
 
                             try:
                                 api.put_rule(ruleset_id, rule_id, rule_data)
-                                state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'tags'
+                                state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = 'tags'
                             except URLError:
                                 continue
 
                             try:
                                 api.post_tags(rule_id, tags_data)
-                                state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
+                                state['organizations'][self.org_id][ruleset_id]['ruleIds'].pop(rule_id)
                             except URLError:
                                 continue
-                        elif state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'del':
+                        elif state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'del':
                             try:
                                 api.delete_rule(ruleset_id, rule_id)
-                                state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
+                                state['organizations'][self.org_id][ruleset_id]['ruleIds'].pop(rule_id)
                             except URLError:
                                 continue
 
                     if state['organizations'][self.org_id][ruleset_id]['modified'] == 'false' and \
-                            len(state['organizations'][self.org_id][ruleset_id]['rules']) == 0:
+                            len(state['organizations'][self.org_id][ruleset_id]['ruleIds']) == 0:
                         state['organizations'][self.org_id].pop(ruleset_id)
             else:
                 if len(state['organizations'][self.org_id]) == 0:
@@ -304,8 +304,8 @@ class State:
         try:
             rulesets = api.get_rulesets()
             if 'errors' in rulesets:
-                logging.error('Could not retrieve organization with the provided credentials.')
-                exit(1)
+                logging.error(f'Could not retrieve organization with the provided credentials: {rulesets["errors"]}.')
+                return None
             for ruleset in rulesets['rulesets']:
                 ruleset_id = ruleset['id']
 
@@ -320,7 +320,7 @@ class State:
                 os.mkdir(ruleset_dir)
                 write_json(ruleset_dir + 'ruleset.json', ruleset)
 
-                for rule in ruleset_rules['rules']:
+                for rule in ruleset_rules['ruleIds']:
                     rule_id = rule['id']
                     logging.debug(f'\tPulling rule and tag JSON on rule ID \'{rule_id}\'')
                     rule_tags = api.get_rule_tags(rule_id)
@@ -428,13 +428,13 @@ class State:
             else:
                 state['organizations'][self.org_id][ruleset_id] = {
                     'modified': action,
-                    'rules': dict()
+                    'ruleIds': dict()
                 }
         else:
             state = self._state_add_organization(state)
             state['organizations'][self.org_id][ruleset_id] = {
                 'modified': action,
-                'rules': dict()
+                'ruleIds': dict()
             }
 
         if write_state:
@@ -469,20 +469,20 @@ class State:
                 else:
                     if state['organizations'][self.org_id][ruleset_id]['modified'] != 'del':
                         state['organizations'][self.org_id][ruleset_id]['modified'] = 'del'
-                        state['organizations'][self.org_id][ruleset_id]['rules'] = {}
+                        state['organizations'][self.org_id][ruleset_id]['ruleIds'] = {}
                     else:
-                        assert(state['organizations'][self.org_id][ruleset_id]['rules'] == {})
+                        assert(state['organizations'][self.org_id][ruleset_id]['ruleIds'] == {})
             else:
                 state['organizations'][self.org_id][ruleset_id] = {
                     'modified': 'del',
-                    'rules': {}
+                    'ruleIds': {}
                 }
         else:
             # We're starting with a clean state file, as far as this organization is concerned.
             state['organizations'][self.org_id] = {
                 ruleset_id: {
                     'modified': 'del',
-                    'rules': {}
+                    'ruleIds': {}
                 }
             }
 
@@ -512,23 +512,23 @@ class State:
 
         if self.org_id in state['organizations']:
             if ruleset_id in state['organizations'][self.org_id]:
-                if rule_id in state['organizations'][self.org_id][ruleset_id]['rules']:
+                if rule_id in state['organizations'][self.org_id][ruleset_id]['ruleIds']:
                     # This is horribly verbose, but I thought it better for debugging purposes to just spell out all
                     # the possibilities here and the results.
-                    if endpoint != 'del' and state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'del':
+                    if endpoint != 'del' and state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'del':
                         raise ValueError('Cannot modify a deleted rule.')
-                    elif endpoint == 'tags' and state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'both':
+                    elif endpoint == 'tags' and state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'both':
                         pass
-                    elif endpoint == 'rule' and state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'both':
+                    elif endpoint == 'rule' and state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'both':
                         pass
-                    elif endpoint == 'both' and state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] != 'both':
-                        state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'both'
-                    elif endpoint == 'tags' and state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'rule':
-                        state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'both'
-                    elif endpoint == 'rule' and state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] == 'tags':
-                        state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'both'
+                    elif endpoint == 'both' and state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] != 'both':
+                        state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = 'both'
+                    elif endpoint == 'tags' and state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'rule':
+                        state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = 'both'
+                    elif endpoint == 'rule' and state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'tags':
+                        state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = 'both'
                 else:
-                    state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = endpoint
+                    state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = endpoint
             else:
                 # Add the ruleset, then the rule thereunder with a recursive call to end up down a different code path.
                 state = self._state_add_ruleset(ruleset_id, action='false', state=state)
@@ -563,18 +563,18 @@ class State:
 
         if self.org_id in state['organizations']:
             if ruleset_id in state['organizations'][self.org_id]:
-                if rule_id in state['organizations'][self.org_id][ruleset_id]['rules']:
+                if rule_id in state['organizations'][self.org_id][ruleset_id]['ruleIds']:
                     if rule_id.endswith(self._postfix):
-                        state['organizations'][self.org_id][ruleset_id]['rules'].pop(rule_id)
-                    elif state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] != 'del':
-                            state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'del'
+                        state['organizations'][self.org_id][ruleset_id]['ruleIds'].pop(rule_id)
+                    elif state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] != 'del':
+                            state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = 'del'
                 else:
-                    state['organizations'][self.org_id][ruleset_id]['rules'][rule_id] = 'del'
+                    state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = 'del'
             else:
                 # The ruleset isn't yet tracked in state.
                 state['organizations'][self.org_id][ruleset_id] = {
                     'modified': 'false',
-                    'rules': {
+                    'ruleIds': {
                         rule_id: 'del'
                     }
                 }
@@ -583,7 +583,7 @@ class State:
             state['organizations'][self.org_id] = {
                 ruleset_id: {
                     'modified': 'false',
-                    'rules': {
+                    'ruleIds': {
                         rule_id: 'del'
                     }
                 }
@@ -783,8 +783,8 @@ class State:
         """
         ruleset_dir = f'{self.organization_dir}{ruleset_id}/'
         if not os.path.isdir(ruleset_dir):
-            print(f'Ruleset {ruleset_id} doesn\'t exist.')
-            return
+            logging.error(f'Ruleset {ruleset_id} doesn\'t exist.')
+            return None
 
         # Find a suitable (temporary, local) UUID for this rule; will be updated once the state file has been pushed.
         while True:
@@ -801,7 +801,7 @@ class State:
         # Update the ruleset's contained rule list. This is filtered on `push`, since the `-localonly` rules don't
         # exist yet, so the platform would probably complain.
         ruleset_data = read_json(ruleset_dir + 'ruleset.json')
-        ruleset_data['rules'].append(rule_id_gen)
+        ruleset_data['ruleIds'].append(rule_id_gen)
         write_json(ruleset_dir + 'ruleset.json', ruleset_data)
 
         # Update the state file to track these changes.
@@ -851,7 +851,7 @@ class State:
 
         # Update the local ruleset's file to reflect this deletion. Rulesets are committed after rules to the platform.
         ruleset_data = read_json(ruleset_dir + 'ruleset.json')
-        ruleset_data['rules'].remove(rule_id)
+        ruleset_data['ruleIds'].remove(rule_id)
         write_json(ruleset_dir + 'ruleset.json', ruleset_data)
 
         return True
@@ -870,7 +870,7 @@ class State:
         rulesets = os.listdir(self.organization_dir)
         for ruleset in rulesets:
             ruleset_data = read_json(self.organization_dir + ruleset + '/ruleset.json')
-            rule_ids = ruleset_data['rules']
+            rule_ids = ruleset_data['ruleIds']
             print(ruleset_data['name'], end='')
             if colorful:
                 with Color.blue():
@@ -886,7 +886,32 @@ class State:
                 else:
                     print(f'({rule_id})')
 
-    def lst_api(self, tags: bool =False, rule_ids: Optional[List] =None, severity: Optional[Severity] =None, typ: Optional[RuleType] =None, full_data: bool =False) -> Optional[Dict[str, Dict[str, Dict[str, Any]]]]:
+    def lst_api_rulesets(self) -> Optional[Dict]:
+        """
+        Provide a list of this organization's ruleset data, minus contained rules. This method, like
+        `self.lst_api_rules` (simpler, however), should only be called by the API.
+
+        Returns:
+            Either None if the organization is empty, or a dictionary containing this organization's rulesets.
+        """
+        ruleset_list = os.listdir(self.organization_dir)
+
+        # Ensure this organization isn't going through a refresh.
+        if '.remote' in ruleset_list:
+            return None
+
+        ret = {
+            self.org_id: dict()
+        }
+
+        for ruleset_id in ruleset_list:
+            ruleset_dir = self.organization_dir + ruleset_id + '/'
+            ruleset_data = read_json(ruleset_dir + 'ruleset.json')
+            ret[self.org_id][ruleset_id] = ruleset_data
+
+        return ret
+
+    def lst_api_rules(self, tags: bool =False, rule_ids: Optional[List] =None, severity: Optional[Severity] =None, typ: Optional[RuleType] =None, full_data: bool =False) -> Optional[Dict[str, Dict[str, Dict[str, Any]]]]:
         """
         Provide a list of this organization's rulesets and rules to an API call. This method should only be called by
         the API, since the calling method should have additional logic to restrict what args can be provided by a user.
@@ -918,7 +943,7 @@ class State:
             ruleset_name = ruleset_data['name']
             ruleset = {
                 'name': ruleset_name,
-                'rules': dict()
+                'ruleIds': dict()
             }
             for rule_id in os.listdir(ruleset_dir):
                 if 'ruleset.json' not in rule_id:
@@ -934,16 +959,16 @@ class State:
                         continue
 
                     if full_data:
-                        ruleset['rules'][rule_id] = {}
-                        ruleset['rules'][rule_id]['data'] = rule_data
+                        ruleset['ruleIds'][rule_id] = {}
+                        ruleset['ruleIds'][rule_id]['data'] = rule_data
                     else:
                         rule_name = rule_data['name']
-                        ruleset['rules'][rule_id] = {}
-                        ruleset['rules'][rule_id]['data'] = {}
-                        ruleset['rules'][rule_id]['data']['name'] = rule_name
+                        ruleset['ruleIds'][rule_id] = {}
+                        ruleset['ruleIds'][rule_id]['data'] = {}
+                        ruleset['ruleIds'][rule_id]['data']['name'] = rule_name
 
                     if tags:
-                        ruleset['rules'][rule_id]['tags'] = read_json(rule_dir + 'tags.json')
+                        ruleset['ruleIds'][rule_id]['tags'] = read_json(rule_dir + 'tags.json')
 
             ret[self.org_id][ruleset_id] = ruleset
         return ret
@@ -994,7 +1019,7 @@ class State:
         return self._create_ruleset(ruleset_data=data)
 
     @lazy
-    def create_rule(self, ruleset_id: str, rule_data: Union[str, Dict], tags_data: Optional[Union[str, Dict]] =None, name_postfix: Optional[str] =None) -> str:
+    def create_rule(self, ruleset_id: str, rule_data: Union[str, Dict], tags_data: Optional[Union[str, Dict]] =None, name_postfix: Optional[str] =None) -> Optional[str]:
         """
         Create a new rule from a JSON file in the current workspace.
 
@@ -1055,7 +1080,7 @@ class State:
         return self
 
     @lazy
-    def copy_rule(self, rule_id: str, ruleset_id: str, postfix: Optional[str] =None) -> 'State':
+    def copy_rule(self, rule_id: str, ruleset_id: str, postfix: Optional[str] =None) -> Optional['State']:
         """
         Copy an existing rule in the current workspace to another ruleset in the same workspace.
 
@@ -1069,21 +1094,22 @@ class State:
         """
         # Locate the rule in this organization (make sure it exists, that is).
         if not (rule_dir := self._locate_rule(rule_id)):
-            print(f'Rule ID \'{rule_id}\' not found in this organization. Please create before updating.')
-            return self
+            logging.error(f'Rule ID \'{rule_id}\' not found in this organization. Please create before updating.')
+            return None
 
         # Ensure the destination ruleset ID exists in this workspace.
         if ruleset_id not in os.listdir(self.organization_dir):
-            print(f'Destination ruleset ID \'{ruleset_id}\' not found in this organization.')
-            return self
+            logging.error(f'Destination ruleset ID \'{ruleset_id}\' not found in this workspace.')
+            return None
 
         rule_data = read_json(rule_dir + 'rule.json')
         tags_data = read_json(rule_dir + 'tags.json')
 
-        if postfix:
-            rule_data['name'] += postfix
-        else:
-            rule_data['name'] += ' - COPY'
+        while self.rule_name_occurs(rule_data['name']):
+            if postfix:
+                rule_data['name'] += postfix
+            else:
+                rule_data['name'] += ' - COPY'
 
         # Create a new rule in the destination ruleset, now that we've confirmed everything exists.
         self._create_rule(ruleset_id, rule_data, tags_data)
@@ -1091,7 +1117,7 @@ class State:
         return self
 
     @lazy
-    def copy_rule_out(self, rule_id: str, ruleset_id: str, org_id: str, postfix: Optional[str] =None) -> 'State':
+    def copy_rule_out(self, rule_id: str, ruleset_id: str, org_id: str, postfix: Optional[str] =None) -> Optional['State']:
         """
         Copy an existing rule in the current workspace to another ruleset in a different workspace. This
         will trip a refresh action against the next workspace prior to copying if it doesn't already exist.
@@ -1109,20 +1135,21 @@ class State:
             print(f'Rule ID \'{rule_id}\' not found in this organization. Please create before updating.')
             return self
 
-        alt_state = State(self.state_dir, self.state_file, self.user_id, self.api_key, org_id=org_id)
+        alt_org = State(self.state_dir, self.state_file, self.user_id, self.api_key, org_id=org_id)
 
         # Ensure the destination ruleset ID exists in the destination organization.
-        if ruleset_id not in os.listdir(self.state_dir + org_id):
-            print(f'Destination ruleset ID \'{ruleset_id}\' not found in organization \'{org_id}\'. Please create this ruleset first.')
-            return self
+        if ruleset_id not in os.listdir(alt_org.organization_dir):
+            logging.error(f'Destination ruleset ID \'{ruleset_id}\' not found in organization \'{org_id}\'. Please create this ruleset first.')
+            return None
 
         rule_data = read_json(rule_dir + 'rule.json')
         tags_data = read_json(rule_dir + 'tags.json')
 
-        if postfix:
-            rule_data['name'] += postfix
-        else:
-            rule_data['name'] += ' - COPY'
+        while alt_org.rule_name_occurs(rule_data['name']):
+            if postfix:
+                rule_data['name'] += postfix
+            else:
+                rule_data['name'] += ' - COPY'
 
         # Create a local copy of this rule in the destination organization.
         alt_state.create_rule(ruleset_id, rule_data, tags_data)
@@ -1130,7 +1157,7 @@ class State:
         return self
 
     @lazy
-    def copy_ruleset(self, ruleset_id: str, postfix: Optional[str] =None) -> 'State':
+    def copy_ruleset(self, ruleset_id: str, postfix: Optional[str] =None) -> Optional['State']:
         """
         Copy an entire ruleset to a new one, intra-org.
 
@@ -1142,22 +1169,25 @@ class State:
             A State instance.
         """
         if not (ruleset_dir := self._locate_ruleset(ruleset_id)):
-            print(f'Ruleset ID \'{ruleset_id}\' not found in this organization. Please create before updating.')
-            return self
+            logging.error(f'Ruleset ID \'{ruleset_id}\' not found in this organization. Please create before updating.')
+            return None
 
         ruleset_data = read_json(ruleset_dir + 'ruleset.json')
-        if postfix:
-            ruleset_data['name'] += postfix
-        else:
-            ruleset_data['name'] += ' - COPY'
+
+        while self.ruleset_name_occurs(ruleset_data['name']):
+            if postfix:
+                ruleset_data['name'] += postfix
+            else:
+                ruleset_data['name'] += ' - COPY'
 
         new_ruleset_id = self.create_ruleset(
             ruleset_data,
             postfix
         )
 
-        # TODO: implement Ruleset and Organization iterators? Would make traversal easier. May come with Rule and
-        #  Ruleset classes as well.
+        new_ruleset_dir = self.organization_dir + new_ruleset_id + '/'
+
+        new_rule_ids = []
         for rule_id in os.listdir(ruleset_dir):
             if rule_id == 'ruleset.json':
                 # skip this file.
@@ -1166,12 +1196,19 @@ class State:
             rule_data = read_json(rule_dir + 'rule.json')
             tags_data = read_json(rule_dir + 'tags.json')
             new_rule_id = self.create_rule(new_ruleset_id, rule_data)
+            new_rule_ids.append(new_rule_id)
             self.create_tags(new_rule_id, tags_data)
+
+        # Update ruleIds list on this new ruleset.
+        if new_rule_ids:
+            new_ruleset_data = read_json(new_ruleset_dir + 'ruleset.json')
+            new_ruleset_data['ruleIds'] = new_rule_ids
+            write_json(new_ruleset_dir + 'ruleset.json', new_ruleset_data)
 
         return self
 
     @lazy
-    def copy_ruleset_out(self, ruleset_id: str, org_id: str, postfix: Optional[str] =None) -> 'State':
+    def copy_ruleset_out(self, ruleset_id: str, org_id: str, postfix: Optional[str] =None) -> Optional['State']:
         """
         Copy an entire ruleset to a new organization. Process looks like,
         1) create a new State instance around this destination organization,
@@ -1188,25 +1225,29 @@ class State:
             A State instance.
         """
         if not (ruleset_dir := self._locate_ruleset(ruleset_id)):
-            print(f'Ruleset ID \'{ruleset_id}\' not found in this organization. Please create before updating.')
-            return self
+            logging.error(f'Ruleset ID \'{ruleset_id}\' not found in this organization. Please create before updating.')
+            return None
 
         alt_org = State(self.state_dir, self.state_file, self.user_id, self.api_key, org_id=org_id)
 
         ruleset_data = read_json(ruleset_dir + 'ruleset.json')
 
-        if postfix:
-            ruleset_data['name'] += postfix
-        else:
-            ruleset_data['name'] += ' - COPY'
+        # Ensure this ruleset name doesn't duplicate any others in the destination organization.
+        while alt_org.ruleset_name_occurs(ruleset_data['name']):
+            if postfix:
+                ruleset_data['name'] += postfix
+            else:
+                ruleset_data['name'] += ' - COPY'
 
         alt_ruleset_id = alt_org.create_ruleset(
             ruleset_data,
             postfix
         )
 
-        # TODO: implement Ruleset and Organization iterators? Would make traversal easier. May come with Rule and
-        #  Ruleset classes as well.
+        alt_organization_dir = self.state_dir + org_id + '/'
+        alt_ruleset_dir = alt_organization_dir + alt_ruleset_id + '/'
+
+        alt_rule_ids = []
         for rule_id in os.listdir(ruleset_dir):
             if rule_id == 'ruleset.json':
                 # skip this file.
@@ -1215,12 +1256,19 @@ class State:
             rule_data = read_json(rule_dir + 'rule.json')
             tags_data = read_json(rule_dir + 'tags.json')
             alt_rule_id = alt_org.create_rule(alt_ruleset_id, rule_data)
+            alt_rule_ids.append(alt_rule_id)
             alt_org.create_tags(alt_rule_id, tags_data)
+
+        # Update ruleIds list on the ruleset that was created on the alt organization.
+        if alt_rule_ids:
+            alt_ruleset_data = read_json(alt_ruleset_dir + 'ruleset.json')
+            alt_ruleset_data['ruleIds'] = alt_rule_ids
+            write_json(alt_ruleset_dir + 'ruleset.json', alt_ruleset_data)
 
         return self
 
     @lazy
-    def update_rule(self, rule_id: str, rule_data: Dict) -> 'State':
+    def update_rule(self, rule_id: str, rule_data: Dict) -> Optional['State']:
         """
         Update a rule that already exists in the local filesystem.
 
@@ -1233,8 +1281,8 @@ class State:
         """
         # Locate the rule in this organization (make sure it exists, that is).
         if not (rule_dir := self._locate_rule(rule_id)):
-            print(f'Rule ID \'{rule_id}\' not found in this organization. Please create before updating.')
-            return self
+            logging.error(f'Rule ID \'{rule_id}\' not found in this organization. Please create before updating.')
+            return None
 
         ruleset_id = rule_dir.split('/')[-3]
         write_json(rule_dir + 'rule.json', rule_data)
@@ -1242,7 +1290,7 @@ class State:
         return self
 
     @lazy
-    def update_ruleset(self, ruleset_id: str, ruleset_data: Dict) -> 'State':
+    def update_ruleset(self, ruleset_id: str, ruleset_data: Dict) -> Optional['State']:
         """
         Update a ruleset.
 
@@ -1250,8 +1298,8 @@ class State:
             A State instance.
         """
         if not (ruleset_dir := self._locate_ruleset(ruleset_id)):
-            print(f'Ruleset ID \'{ruleset_id}\' not found in this organization. Please create before updating.')
-            return self
+            logging.error(f'Ruleset ID \'{ruleset_id}\' not found in this organization. Please create before updating.')
+            return None
 
         write_json(ruleset_dir + 'ruleset.json', ruleset_data)
         self._state_add_ruleset(ruleset_id, action='true')

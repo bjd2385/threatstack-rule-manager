@@ -438,7 +438,7 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/ruleset?ruleset={{ruleset_id}}",
+							"raw": "http://localhost:8000/ruleset?ruleset_id={{ruleset_id}}",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -449,7 +449,7 @@
 							],
 							"query": [
 								{
-									"key": "ruleset",
+									"key": "ruleset_id",
 									"value": "{{ruleset_id}}"
 								}
 							]
@@ -664,7 +664,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"destination_organization\": \"\",\n    \"rulesets\": [\n        {\n            \"ruleset_id\": \"{{ruleset_id}}\",\n            \"ruleset_postfix\": \" - COPY\"\n        }\n    ],\n    \"rules\": [],\n    \"tags\": []\n}",
+							"raw": "{\n    \"destination_organization\": \"\",\n    \"rulesets\": [\n        {\n            \"ruleset_id\": \"{{ruleset_id}}\",\n            \"ruleset_name_postfix\": \" - COPY\"\n        }\n    ],\n    \"rules\": [],\n    \"tags\": []\n}",
 							"options": {
 								"raw": {
 									"language": "json"
