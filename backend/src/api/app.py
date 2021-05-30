@@ -2,18 +2,17 @@
 Provide a slightly-higher level interface between tsctl's state methods and calls and what will be the front end.
 """
 
-from typing import Dict, Optional, Any, cast, Literal
+from typing import Dict, Optional, Literal, cast
 
 import tsctl
 import os
-import concurrent.futures
 import logging
 
 from http import HTTPStatus
 from flask import Flask, redirect, url_for, request, abort
 from functools import lru_cache
 from repo.actions import initialize_repo
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 here = os.path.dirname(os.path.realpath(__file__)) + '/'
@@ -285,7 +284,7 @@ def refresh() -> Dict:
             # Spawn each refresh in a new thread, since rate limiting is enforced at the organization-level.
             with ThreadPoolExecutor(max_workers=REMOTE_THREAD_CT) as executor:
                 futures = (executor.submit(_refresh, org_id) for org_id in request_data['organizations'])
-                for future in concurrent.futures.as_completed(futures):
+                for future in as_completed(futures):
                     future.result()
         elif len(request_data['organizations']):
             # Single loop.
@@ -330,7 +329,7 @@ def push() -> Dict:
             # Spawn each push in a new thread, since rate limiting is enforced at the organization-level.
             with ThreadPoolExecutor(max_workers=REMOTE_THREAD_CT) as executor:
                 futures = (executor.submit(_push, org_id) for org_id in request_data['organizations'])
-                for future in concurrent.futures.as_completed(futures):
+                for future in as_completed(futures):
                     future.result()
         elif len(request_data['organizations']):
             # Single loop.
