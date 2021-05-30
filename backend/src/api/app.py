@@ -411,7 +411,7 @@ def copy() -> Dict:
                 if _ensure_args(ruleset_data, 'ruleset_name_postfix'):
                     ruleset_name_postfix = ruleset_data['ruleset_name_postfix']
                 if destination_organization:
-                    organization.copy_ruleset_out(ruleset_id, postfix=ruleset_name_postfix)
+                    organization.copy_ruleset_out(ruleset_id, destination_organization, postfix=ruleset_name_postfix)
                 else:
                     organization.copy_ruleset(ruleset_id, postfix=ruleset_name_postfix)
 

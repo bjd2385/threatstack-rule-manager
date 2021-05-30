@@ -109,21 +109,34 @@ class State:
             api = API(**self.credentials)
 
             for ruleset_id in list(state['organizations'][self.org_id]):
+                # Check if this ruleset is to just be deleted, since updates and creation depend on a directory
+                # structure to be present.
+                if state['organizations'][self.org_id][ruleset_id]['modified'] == 'del':
+                    try:
+                        logging.info(f'Deleting ruleset \'{ruleset_id}\'.')
+                        api.delete_ruleset(ruleset_id)
+                        state['organizations'][self.org_id].pop(ruleset_id)
+                    except URLError as msg:
+                        # Continue to next ruleset, deletion as unsuccessful.
+                        logging.error(f'Failed to delete ruleset ID \'{ruleset_id}\': {msg}.')
+                    continue
+
                 ruleset_dir = f'{self.organization_dir}{ruleset_id}/'
                 ruleset_data = read_json(ruleset_dir + 'ruleset.json')
                 if ruleset_id.endswith(self._postfix):
                     # It's a new ruleset, the result of a copy or creation. We need to strip out any rules in the
-                    # JSON that are `-localonly` as well, because the platform won't know what to do with them.
+                    # JSON that are `-localonly` as well, because the platform won't know what to do with them until
+                    # the ruleset is created.
                     localonly_rules = ruleset_data['ruleIds']
                     ruleset_data['ruleIds'] = []
-                    logging.info(f'Creating ruleset: {ruleset_id}')
                     try:
+                        logging.info(f'Creating ruleset: {ruleset_id}.')
                         ruleset_response = api.post_ruleset(ruleset_data)
                         new_ruleset_id = ruleset_response['id']
-                        logging.debug(f'New ruleset ID: {new_ruleset_id}')
+                        logging.debug(f'New ruleset ID: {new_ruleset_id}.')
                     except URLError as msg:
                         # Skip the rule requests, since there's no ruleset to post rules to. User will have to re-run.
-                        logging.error(f'Deleting ruleset: {msg}')
+                        logging.error(f'Failed to create ruleset ID \'{ruleset_id}\': {msg}.')
                         continue
 
                     # Now let's go back and append all of these new rules to the ruleset, and update our local records
@@ -133,29 +146,32 @@ class State:
                         rule_data = read_json(rule_dir + 'rule.json')
                         tags_data = read_json(rule_dir + 'tags.json')
 
-                        logging.info(f'Creating rule: {rule_id}')
                         try:
+                            logging.info(f'Creating rule ID \'{rule_id}\'.')
                             rule_response = api.post_rule(new_ruleset_id, rule_data)
                             if 'errors' in rule_response:
-                                logging.error(rule_response)
-                                continue
+                                raise URLError(rule_response)
                             state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = 'tags'
                             new_rule_id = rule_response['id']
                             shutil.move(rule_dir, f'{ruleset_dir}{new_rule_id}/')
                             ruleset_data['ruleIds'].append(new_rule_id)
                         except URLError as msg:
-                            # Request to update failed, remain tracking in state file.
+                            logging.error(f'Failed to create rule ID \'{rule_id}\': {msg}.')
                             continue
 
                         try:
+                            logging.info(f'Creating tags on rule ID \'{rule_id}\'.')
                             api.post_tags(new_rule_id, tags_data)
                             if state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'tags':
                                 state['organizations'][self.org_id][ruleset_id]['ruleIds'].pop(rule_id)
                             else:
                                 state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = 'rule'
-                        except URLError:
+                        except URLError as msg:
+                            logging.error(f'Failed to update tags on rule ID \'{rule_id}\': {msg}.')
                             continue
 
+                    # Propagate the assigned ruleset and rule IDs received from the platform back to the directory
+                    # structure.
                     new_ruleset_dir = f'{self.organization_dir}{new_ruleset_id}/'
                     shutil.move(ruleset_dir, new_ruleset_dir)
                     write_json(new_ruleset_dir + 'ruleset.json', ruleset_data)
@@ -174,20 +190,14 @@ class State:
 
                     if state['organizations'][self.org_id][ruleset_id]['modified'] == 'true':
                         try:
+                            logging.info('Updating ruleset ID \'{ruleset_id}\'.')
                             api.put_ruleset(ruleset_id, ruleset_data)
                             state['organizations'][self.org_id][ruleset_id]['modified'] = 'false'
-                        except URLError:
+                        except URLError as msg:
                             # Unlike the other branch, we don't need to skip the rules, because this ruleset does indeed
                             # exist remotely, it just needs to be updated if the POST request fails.
+                            logging.error(f'Failed to update ruleset ID \'{ruleset_id}\': {msg}.')
                             pass
-
-                    elif state['organizations'][self.org_id][ruleset_id]['modified'] == 'del':
-                        try:
-                            api.delete_ruleset(ruleset_id)
-                            state['organizations'][self.org_id].pop(ruleset_id)
-                            continue
-                        except URLError:
-                            continue
 
                     # Loop over new rules that need to be created in the platform, propagate their new IDs back.
                     for rule_id in localonly_rules:
@@ -196,22 +206,28 @@ class State:
                         tags_data = read_json(rule_dir + 'tags.json')
 
                         try:
+                            logging.info(f'Creating rule ID \'{rule_id}\'.')
                             rule_response = api.post_rule(ruleset_id, rule_data)
+                            if 'errors' in rule_response:
+                                raise URLError(rule_response)
                             state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = 'tags'
                             new_rule_id = rule_response['id']
                             shutil.move(rule_dir, f'{ruleset_dir}{new_rule_id}/')
                             ruleset_data['ruleIds'].append(new_rule_id)
-                        except URLError:
+                        except URLError as msg:
                             # Request to update failed, remain tracking in state file.
+                            logging.error(f'Failed to update rule ID \'{rule_id}\': {msg}')
                             continue
 
                         try:
+                            logging.info(f'Updating tags on rule ID \'{rule_id}\'.')
                             api.post_tags(new_rule_id, tags_data)
                             if state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'tags':
                                 state['organizations'][self.org_id][ruleset_id]['ruleIds'].pop(rule_id)
                             else:
                                 state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = 'rule'
-                        except URLError:
+                        except URLError as msg:
+                            logging.error(f'Failed to update tags on rule ID \'{rule_id}\': {msg}.')
                             continue
 
                     # Since there are new rule IDs, write this data to the ruleset for tracking.
@@ -224,38 +240,52 @@ class State:
                         if state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'rule':
                             rule_data = read_json(rule_dir + 'rule.json')
                             try:
+                                logging.info(f'Updating rule ID \'{rule_id}\'.')
                                 api.put_rule(ruleset_id, rule_id, rule_data)
                                 state['organizations'][self.org_id][ruleset_id]['ruleIds'].pop(rule_id)
-                            except URLError:
+                            except URLError as msg:
+                                logging.error(f'Failed to update rule JSON on rule ID \'{rule_id}\': {msg}.')
                                 continue
                         elif state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'tags':
                             tags_data = read_json(rule_dir + 'tags.json')
                             try:
+                                logging.info(f'Updating tags on rule ID \'{rule_id}\'.')
                                 api.post_tags(rule_id, tags_data)
                                 state['organizations'][self.org_id][ruleset_id]['ruleIds'].pop(rule_id)
-                            except URLError:
+                            except URLError as msg:
+                                logging.error(f'Failed to update tags on rule ID \'{rule_id}\': {msg}.')
                                 continue
                         elif state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'both':
+                            # Attempt both updates, though this code is kinda duplicated.
                             rule_data = read_json(rule_dir + 'rule.json')
+
+                            try:
+                                logging.info(f'Updating rule ID \'{rule_id}\'.')
+                                api.put_rule(ruleset_id, rule_id, rule_data)
+                                state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = 'tags'
+                            except URLError as msg:
+                                logging.error(f'Failed to update rule ID \'{rule_id}\': {msg}.')
+                                continue
+
                             tags_data = read_json(rule_dir + 'tags.json')
 
                             try:
-                                api.put_rule(ruleset_id, rule_id, rule_data)
-                                state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] = 'tags'
-                            except URLError:
-                                continue
-
-                            try:
+                                logging.info(f'Updating tags on rule ID \'{rule_id}\'.')
                                 api.post_tags(rule_id, tags_data)
                                 state['organizations'][self.org_id][ruleset_id]['ruleIds'].pop(rule_id)
-                            except URLError:
+                            except URLError as msg:
+                                logging.error(f'Failed to update tags on rule ID \'{rule_id}\': {msg}.')
                                 continue
+
                         elif state['organizations'][self.org_id][ruleset_id]['ruleIds'][rule_id] == 'del':
                             try:
+                                logging.info(f'Deleting rule ID \'{rule_id}\'.')
                                 api.delete_rule(ruleset_id, rule_id)
                                 state['organizations'][self.org_id][ruleset_id]['ruleIds'].pop(rule_id)
-                            except URLError:
-                                continue
+                            except URLError as msg:
+                                # Continue to next rule, deletion was unsuccessful.
+                                logging.error(f'Failed on deletion of rule ID \'{rule_id}\': {msg}')
+                            continue
 
                     if state['organizations'][self.org_id][ruleset_id]['modified'] == 'false' and \
                             len(state['organizations'][self.org_id][ruleset_id]['ruleIds']) == 0:

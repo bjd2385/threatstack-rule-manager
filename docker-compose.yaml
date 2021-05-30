@@ -16,7 +16,7 @@ services:
         reservations:
           memory: "5000M"
     container_name: rule-manager-backend
-    # Comment out the following if you're running this in prod. For testing purposes, however, it saves you the time
+    # Comment out the following if you're running this on prod. For testing purposes, however, it saves you the time
     # it would take to perform a refresh to pull down remote state (to run your tests).
     volumes:
       - ~/.threatstack/:/root/.threatstack/
