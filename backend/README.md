@@ -6,7 +6,7 @@ tsctl
 * creating, copying, and deleting rules and rulesets, and
 * applying version control to local state (by default, tracked in `~/.threatstack`), to track rule development and change history on the platform as organizations develop rules to reflect security practices and standards.
 
-```shell
+```text
 $ tsctl -h
 usage: tsctl [-h] [--create-rule RULESET FILE] [--copy-rule RULE RULESET] [--copy-rule-out RULE RULESET ORGID] [--update-rule RULE FILE] [--update-tags RULE FILE]
              [--delete-rule RULE] [--create-ruleset FILE] [--copy-ruleset RULESET] [--copy-ruleset-out RULESET ORGID] [--update-ruleset RULESET FILE]

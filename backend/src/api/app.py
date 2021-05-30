@@ -1,12 +1,13 @@
 """
 Provide a slightly-higher level interface between tsctl's state methods and calls and what will be the front end.
 """
-import concurrent.futures
-import logging
+
 from typing import Dict, Optional, Any, cast, Literal
 
 import tsctl
 import os
+import concurrent.futures
+import logging
 
 from http import HTTPStatus
 from flask import Flask, redirect, url_for, request, abort
@@ -313,6 +314,8 @@ def push() -> Dict:
             ...
         ]
     }
+
+    If the list is empty, the endpoint defaults to pushing changes to the current workspace.
 
     Returns:
         The state file, and if the push was successful, the organization's state will be cleared (hence not present).
