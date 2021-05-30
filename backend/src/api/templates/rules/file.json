@@ -3,14 +3,27 @@
     "alertDescription": "",
     "filter": "",
     "suppressions": [],
-    "ignoreFiles": ""
+    "ignoreFiles": [""],
+    "aggregateFields": [
+      "command",
+      "filename",
+      "user",
+      "exe",
+      "arguments",
+      "session",
+      "src_user",
+      "dst_user",
+      "cloudProvider",
+      "accountId",
+      "availabilityZone",
+      "hostname"
+    ]
   },
   "required": {
     "name": "",
     "title": "",
-    "type": "file",
+    "type": "File",
     "severityOfAlerts": 3,
-    "aggregateFields": [],
     "window": 86400,
     "threshold": 1,
     "enabled": false,

@@ -248,8 +248,16 @@ class API:
                 # Remove non-POSTable fields by
                 # https://apidocs.threatstack.com/v2/rule-sets-and-rules/create-rule-endpoint
                 for field in ('rulesetId', 'updatedAt', 'createdAt'):
-                    if field in response['rules'][i]:
-                        response['rules'][i].pop(field)
+                    if field in rule:
+                        rule.pop(field)
+
+                # Remove non-POSTable aggregate fields that TS has apparently deprecated.
+                if 'aggregateFields' in rule:
+                    for field in ('rule_id',):
+                        if field in rule['aggregateFields']:
+                            rule['aggregateFields'].remove(field)
+
+                response['rules'][i] = rule
 
             # As with `get_ruleset` above, this endpoint is also plagued by an inconsistency in returned field name that
             # is not POSTable.
