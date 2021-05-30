@@ -26,12 +26,12 @@ Severity = Literal[1, 2, 3]
 RuleType = Literal['file', 'cloudtrail', 'host', 'threatintel', 'windows']
 
 
-def lazy(f: Callable[..., 'State']) -> Callable:
+def lazy(f: Callable[..., Optional['State']]) -> Callable[..., Optional['State']]:
     """
     Apply a `push` from local state onto the remote state if the `LAZY_EVAL` environment variable was set to `true`.
 
     Args:
-        f: method on State to apply a push.
+        f: method on State to optionally automatically apply a push.
 
     Returns:
         f's normal return, a State instance, if lazy; otherwise, nothing.
@@ -41,8 +41,10 @@ def lazy(f: Callable[..., 'State']) -> Callable:
         if lazy_eval:
             return f(*args, **kwargs)
         else:
-            f(*args, **kwargs).push()
-            return
+            logging.debug(f'Due to lazy eval setting, pushing changes on {f}')
+            if (res := f(*args, **kwargs)) is not None:
+                res.push()
+            return res
 
     return _new_f
 
@@ -296,7 +298,7 @@ class State:
                 write_json(self.state_file, state)
         else:
             # Nothing to do.
-            return
+            return None
 
     def refresh(self) -> None:
         """
@@ -397,7 +399,7 @@ class State:
 
         if write_state:
             write_json(self.state_file, state)
-            return
+            return None
         else:
             return state
 
@@ -426,7 +428,7 @@ class State:
 
         if write_state:
             write_json(self.state_file, state)
-            return
+            return None
         else:
             return state
 
@@ -469,7 +471,7 @@ class State:
 
         if write_state:
             write_json(self.state_file, state)
-            return
+            return None
         else:
             return state
 
@@ -518,7 +520,7 @@ class State:
 
         if write_state:
             write_json(self.state_file, state)
-            return
+            return None
         else:
             return state
 
@@ -571,7 +573,7 @@ class State:
 
         if write_state:
             write_json(self.state_file, state)
-            return
+            return None
         else:
             return state
 
@@ -621,7 +623,7 @@ class State:
 
         if write_state:
             write_json(self.state_file, state)
-            return
+            return None
         else:
             return state
 
@@ -732,7 +734,7 @@ class State:
             shutil.rmtree(self.organization_dir, ignore_errors=True)
             self._state_delete_organization(org_id)
 
-        return
+        return None
 
     def _create_ruleset(self, ruleset_data: Dict) -> str:
         """
@@ -773,13 +775,13 @@ class State:
         ruleset_dir = f'{self.organization_dir}{ruleset_id}/'
         if not os.path.isdir(ruleset_dir):
             print(f'Ruleset {ruleset_id} doesn\'t exist.')
-            return
+            return None
         write_json(ruleset_dir + 'ruleset.json', ruleset_data)
 
         # Update the state file to track these changes.
         self._state_add_ruleset(ruleset_id, action='true')
 
-        return
+        return None
 
     def _delete_ruleset(self, ruleset_id: str) -> None:
         """
@@ -794,7 +796,7 @@ class State:
         ruleset_dir = f'{self.organization_dir}{ruleset_id}/'
         if not os.path.isdir(ruleset_dir):
             print(f'Ruleset {ruleset_id} doesn\'t exist.')
-            return
+            return None
 
         shutil.rmtree(ruleset_dir)
         self._state_delete_ruleset(ruleset_id, recursive=True)
@@ -857,7 +859,7 @@ class State:
         ruleset_id = rule_dir.split('/')[-3]
         self._state_add_rule(ruleset_id, rule_id, endpoint='rule')
 
-        return
+        return None
 
     def _delete_rule(self, rule_id: str) -> bool:
         """
@@ -1015,7 +1017,7 @@ class State:
         """
         if not (rule_dir := self._locate_rule(rule_id)):
             print(f'Rule ID \'{rule_id}\' not found in this organization. Please create before updating its tags.')
-            return
+            return None
 
         tags_data = read_json(rule_dir + 'tags.json')
         return tags_data
@@ -1182,7 +1184,7 @@ class State:
                 rule_data['name'] += ' - COPY'
 
         # Create a local copy of this rule in the destination organization.
-        alt_state.create_rule(ruleset_id, rule_data, tags_data)
+        alt_org.create_rule(ruleset_id, rule_data, tags_data)
 
         return self
 
