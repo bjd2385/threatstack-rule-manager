@@ -20,6 +20,9 @@ services:
     # it would take to perform a refresh to pull down remote state (to run your tests).
     volumes:
       - ~/.threatstack/:/root/.threatstack/
+    environment:
+      # Since rate limiting is enforced to 300 requests/s at the org.-level, refreshes and pushes can
+      - REMOTE_THREAD_CT=4
   app:
     image: "rule-viewer:latest"
     build: app/

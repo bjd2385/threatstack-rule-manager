@@ -1,7 +1,8 @@
 """
 Provide a slightly-higher level interface between tsctl's state methods and calls and what will be the front end.
 """
-
+import concurrent.futures
+import logging
 from typing import Dict, Optional, Any, cast, Literal
 
 import tsctl
@@ -11,6 +12,7 @@ from http import HTTPStatus
 from flask import Flask, redirect, url_for, request, abort
 from functools import lru_cache
 from repo.actions import initialize_repo
+from concurrent.futures import ThreadPoolExecutor
 
 
 here = os.path.dirname(os.path.realpath(__file__)) + '/'
@@ -20,6 +22,24 @@ cached_read_json = lru_cache(maxsize=32)(tsctl.tsctl.read_json)
 
 # Sync this list with tsctl.state
 RuleType = Literal['file', 'cloudtrail', 'host', 'threatintel', 'windows']
+
+# push/refresh thread count.
+if 'REMOTE_THREAD_CT' in os.environ:
+    thread_count = os.getenv('REMOTE_THREAD_CT')
+    try:
+        REMOTE_THREAD_CT = int(thread_count)
+        logging.info(f'Using {REMOTE_THREAD_CT} threads for push and refresh at the organization-level.')
+    except TypeError:
+        logging.error(f'Environment variable \'REMOTE_THREAD_CT\' must be an integer >= 1, received value \'{thread_count}\'. Defaulting to no threading.')
+        REMOTE_THREAD_CT = None
+
+    if REMOTE_THREAD_CT < 2:
+        logging.error(f'Must define a \'REMOTE_THREAD_CT\' value >= 1, received \'{REMOTE_THREAD_CT}\'. Defaulting to no threading.')
+        REMOTE_THREAD_CT = None
+else:
+    # Don't use threading since the environment variable was not set.
+    logging.info('\'REMOTE_THREAD_CT\' was not found in env, defaulting to no threading.')
+    REMOTE_THREAD_CT = None
 
 
 def is_workspace_set() -> bool:
@@ -240,8 +260,7 @@ def workspace() -> Dict:
 @app.route('/refresh', methods=['POST'])
 def refresh() -> Dict:
     """
-    Refresh an organization's local state copy (or pull it down preemptively). Expects a similar payload as other
-    endpoints:
+    Refresh an organization's local state. Expects a similar payload as 'push':
 
     {
         "organizations": [
@@ -250,24 +269,43 @@ def refresh() -> Dict:
         ]
     }
 
+    If the list is empty, the endpoint defaults to refreshing the current workspace.
+
     Returns:
         The state file, and if the refresh was successful, the organization's state will be cleared (hence not present).
     """
+    def _refresh(org_id: Optional[str] =None) -> None:
+        _org = new_state(org_id=org_id)
+        _org.refresh()
+
     request_data = request.get_json()
     if request_data and _ensure_args(request_data, 'organizations'):
-        for org_id in request_data['organizations']:
-            organization = new_state(org_id=org_id)
-            organization.refresh()
-        return tsctl.tsctl.plan(state_file_path, show=False)
+        if REMOTE_THREAD_CT and len(request_data['organizations']) > 1:
+            # Spawn each refresh in a new thread, since rate limiting is enforced at the organization-level.
+            with ThreadPoolExecutor(max_workers=REMOTE_THREAD_CT) as executor:
+                futures = (executor.submit(_refresh, org_id) for org_id in request_data['organizations'])
+                for future in concurrent.futures.as_completed(futures):
+                    future.result()
+        elif len(request_data['organizations']):
+            # Single loop.
+            for org_id in request_data['organizations']:
+                _refresh(org_id)
+
+    elif 'organizations' in request_data and len(request_data['organizations']) == 0 and is_workspace_set():
+        # Refresh the current workspace.
+        _refresh()
+
     else:
         abort(HTTPStatus.BAD_REQUEST)
+
+    return tsctl.tsctl.plan(state_file_path, show=False)
 
 
 @app.route('/push', methods=['POST'])
 def push() -> Dict:
     """
-    Push organizations' local state changes onto the (remote) Threat Stack platform. Expects a similar payload as other
-    endpoints:
+    Push organizations' local state changes onto the (remote) Threat Stack platform. Expects a similar payload as
+    'refresh':
 
     {
         "organizations": [
@@ -279,14 +317,31 @@ def push() -> Dict:
     Returns:
         The state file, and if the push was successful, the organization's state will be cleared (hence not present).
     """
+    def _push(org_id: Optional[str] =None) -> None:
+        _org = new_state(org_id=org_id)
+        _org.push()
+
     request_data = request.get_json()
     if request_data and _ensure_args(request_data, 'organizations'):
-        for org_id in request_data['organizations']:
-            organization = new_state(org_id=org_id)
-            organization.push()
-        return tsctl.tsctl.plan(state_file_path, show=False)
+        if REMOTE_THREAD_CT and len(request_data['organizations']) > 1:
+            # Spawn each push in a new thread, since rate limiting is enforced at the organization-level.
+            with ThreadPoolExecutor(max_workers=REMOTE_THREAD_CT) as executor:
+                futures = (executor.submit(_push, org_id) for org_id in request_data['organizations'])
+                for future in concurrent.futures.as_completed(futures):
+                    future.result()
+        elif len(request_data['organizations']):
+            # Single loop.
+            for org_id in request_data['organizations']:
+                _push(org_id)
+
+    elif 'organizations' in request_data and len(request_data['organizations']) == 0 and is_workspace_set():
+        # Refresh the current workspace.
+        _push()
+
     else:
         abort(HTTPStatus.BAD_REQUEST)
+
+    return tsctl.tsctl.plan(state_file_path, show=False)
 
 
 # Git
@@ -705,7 +760,7 @@ def ruleset() -> Dict:
     if request.method == 'GET':
         # There are no accepted args on this endpoint, so just return a list of all rulesets. The `rule` GET endpoint
         # is a bit more powerful on its searching capabilities.
-        if (ruleset_data := organization.lst_api_rulesets()):
+        if ruleset_data := organization.lst_api_rulesets():
             return ruleset_data
         else:
             return {

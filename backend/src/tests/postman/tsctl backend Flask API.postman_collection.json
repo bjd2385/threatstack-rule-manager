@@ -575,7 +575,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"organizations\": [\n        \"{{org_id}}\"\n    ]\n}",
+							"raw": "{\n    \"organizations\": [\n        \"{{org_id}}\",\n        \"{{alt_org_id}}\"\n    ]\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -592,7 +592,8 @@
 							"path": [
 								"refresh"
 							]
-						}
+						},
+						"description": "Refresh the local state on a single- or list of organizations."
 					},
 					"response": []
 				},
@@ -603,7 +604,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"organizations\": [\n        \"{{org_id}}\"\n    ]\n}",
+							"raw": "{\n    \"organizations\": [\n        \"{{org_id}}\",\n        \"{{alt_org_id}}\"\n    ]\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -664,7 +665,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"destination_organization\": \"\",\n    \"rulesets\": [\n        {\n            \"ruleset_id\": \"{{ruleset_id}}\",\n            \"ruleset_name_postfix\": \" - COPY\"\n        }\n    ],\n    \"rules\": [],\n    \"tags\": []\n}",
+							"raw": "{\n    \"destination_organization\": \"{{alt_org_id}}\",\n    \"rulesets\": [\n        {\n            \"ruleset_id\": \"{{ruleset_id}}\",\n            \"ruleset_name_postfix\": \" - COPY\"\n        }\n    ],\n    \"rules\": [],\n    \"tags\": []\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -714,7 +715,7 @@
 					"response": []
 				},
 				{
-					"name": "Copy tags from one rule to another",
+					"name": "Copy tags from one rule to another organization",
 					"request": {
 						"method": "POST",
 						"header": [],
@@ -804,7 +805,7 @@
 						"version"
 					]
 				},
-				"description": "Return the backend version string."
+				"description": "Return the backend version."
 			},
 			"response": []
 		}

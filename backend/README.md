@@ -4,9 +4,9 @@ tsctl
 `tsctl` is a Terraform-inspired CLI that allows you to perform most common tasks related to organization-level rule management in [Threat Stack's platform](https://www.threatstack.com/), such as
 
 * creating, copying, and deleting rules and rulesets, and
-* applying version control to local state (by default, `~/.threatstack`) to track rule development and history on the platform as you and your organization learn and develop security practices.
+* applying version control to local state (by default, tracked in `~/.threatstack`), to track rule development and change history on the platform as organizations develop rules to reflect security practices and standards.
 
-```text
+```shell
 $ tsctl -h
 usage: tsctl [-h] [--create-rule RULESET FILE] [--copy-rule RULE RULESET] [--copy-rule-out RULE RULESET ORGID] [--update-rule RULE FILE] [--update-tags RULE FILE]
              [--delete-rule RULE] [--create-ruleset FILE] [--copy-ruleset RULESET] [--copy-ruleset-out RULESET ORGID] [--update-ruleset RULESET FILE]

@@ -69,7 +69,7 @@ class State:
         self.organization_dir = state_dir + org_id + '/'
 
         # Postfix is set on local-only changes and tracked during pushes to the remote platform so that local
-        # directories can be refreshed to their properly-assigned UUID.
+        # directories can be assigned their proper platform-assigned UUID.
         self._postfix = postfix
 
     @property
