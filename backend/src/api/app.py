@@ -396,9 +396,15 @@ def copy() -> Dict:
                 if _ensure_args(rule, 'rule_name_postfix'):
                     rule_name_postfix = rule['rule_name_postfix']
                 if destination_organization:
-                    organization.copy_rule_out(rule_id, ruleset_id, destination_organization, postfix=rule_name_postfix)
+                    if not organization.copy_rule_out(rule_id, ruleset_id, destination_organization, postfix=rule_name_postfix):
+                        return {
+                            "error": f"rule ID '{rule_id}' in src organization or ruleset ID '{ruleset_id}' does not exist in dst organization for copying."
+                        }
                 else:
-                    organization.copy_rule(rule_id, ruleset_id, postfix=rule_name_postfix)
+                    if not organization.copy_rule(rule_id, ruleset_id, postfix=rule_name_postfix):
+                        return {
+                            "error": f"rule ID '{rule_id}' or ruleset ID '{ruleset_id}' does not exist for copying."
+                        }
 
         if _ensure_args(request_data, 'rulesets'):
             for ruleset_data in request_data['rulesets']:
@@ -411,9 +417,15 @@ def copy() -> Dict:
                 if _ensure_args(ruleset_data, 'ruleset_name_postfix'):
                     ruleset_name_postfix = ruleset_data['ruleset_name_postfix']
                 if destination_organization:
-                    organization.copy_ruleset_out(ruleset_id, destination_organization, postfix=ruleset_name_postfix)
+                    if not organization.copy_ruleset_out(ruleset_id, destination_organization, postfix=ruleset_name_postfix):
+                        return {
+                            "error": f"ruleset ID '{ruleset_id}' does not exist in src organization for copying."
+                        }
                 else:
-                    organization.copy_ruleset(ruleset_id, postfix=ruleset_name_postfix)
+                    if not organization.copy_ruleset(ruleset_id, postfix=ruleset_name_postfix):
+                        return {
+                            "error": f"ruleset ID '{ruleset_id}' does not exist for copying."
+                        }
 
         if _ensure_args(request_data, 'tags'):
             for tag in request_data['tags']:
