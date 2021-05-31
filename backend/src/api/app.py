@@ -2,7 +2,8 @@
 Provide a slightly-higher level interface between tsctl's state methods and calls and what will be the front end.
 """
 
-from typing import Dict, Optional, Literal, cast
+from typing import Dict, Optional, cast
+from tsctl.state import RuleType
 
 import tsctl
 import os
@@ -20,8 +21,6 @@ app = Flask(__name__)
 state_directory_path, state_file_path, credentials = tsctl.tsctl.config_parse()
 cached_read_json = lru_cache(maxsize=32)(tsctl.tsctl.read_json)
 
-# Sync this list with tsctl.state
-RuleType = Literal['file', 'cloudtrail', 'host', 'threatintel', 'windows']
 
 # push/refresh thread count.
 if 'REMOTE_THREAD_CT' in os.environ:

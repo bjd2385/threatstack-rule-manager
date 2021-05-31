@@ -23,7 +23,7 @@ RulesetStatus = Literal['true', 'false', 'del']
 Severity = Literal[1, 2, 3]
 
 # This Literal should match types listed in src/api/templates/rules/.
-RuleType = Literal['file', 'cloudtrail', 'host', 'threatintel', 'windows']
+RuleType = Literal['File', 'CloudTrail', 'Host', 'ThreatIntel', 'Winsec', 'kubernetesAudit', 'kubernetesConfig']
 
 
 def lazy(f: Callable[..., Optional['State']]) -> Callable[..., Optional['State']]:
