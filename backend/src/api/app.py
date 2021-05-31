@@ -11,6 +11,7 @@ import logging
 
 from http import HTTPStatus
 from flask import Flask, redirect, url_for, request, abort
+from flask_cors import cross_origin, CORS
 from functools import lru_cache
 from repo.actions import initialize_repo
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -18,6 +19,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 here = os.path.dirname(os.path.realpath(__file__)) + '/'
 app = Flask(__name__)
+cors = CORS(app)
 state_directory_path, state_file_path, credentials = tsctl.tsctl.config_parse()
 cached_read_json = lru_cache(maxsize=32)(tsctl.tsctl.read_json)
 
@@ -106,6 +108,7 @@ def _ensure_args(request_data: Dict, *args: str) -> bool:
 
 
 @app.route('/version', methods=['GET'])
+@cross_origin()
 def version() -> Dict[str, str]:
     """
     Return the version of the backend app (based on tsctl.__version__).
@@ -116,6 +119,7 @@ def version() -> Dict[str, str]:
 
 
 @app.route('/templates/ruleset', methods=['GET'])
+@cross_origin()
 def template_ruleset() -> Dict:
     """
     Get an empty ruleset template.
@@ -127,6 +131,7 @@ def template_ruleset() -> Dict:
 
 
 @app.route('/templates/tags', methods=['GET'])
+@cross_origin()
 def template_tags() -> Dict:
     """
     Get a skeleton tags JSON template.
@@ -138,6 +143,7 @@ def template_tags() -> Dict:
 
 
 @app.route('/templates/rules/audit', methods=['GET'])
+@cross_origin()
 def template_rules_audit() -> Dict:
     """
     Get a skeleton audit rule.
@@ -149,6 +155,7 @@ def template_rules_audit() -> Dict:
 
 
 @app.route('/templates/rules/cloudtrail', methods=['GET'])
+@cross_origin()
 def template_rules_cloudtrail() -> Dict:
     """
     Get a skeleton cloudtrail rule.
@@ -160,6 +167,7 @@ def template_rules_cloudtrail() -> Dict:
 
 
 @app.route('/templates/rules/file', methods=['GET'])
+@cross_origin()
 def template_rules_file() -> Dict:
     """
     Get a skeleton FIM rule.
@@ -171,6 +179,7 @@ def template_rules_file() -> Dict:
 
 
 @app.route('/templates/rules/kubernetesaudit', methods=['GET'])
+@cross_origin()
 def template_rules_kubernetesaudit() -> Dict:
     """
     Get a skeleton kubernetesAudit rule.
@@ -182,6 +191,7 @@ def template_rules_kubernetesaudit() -> Dict:
 
 
 @app.route('/templates/rules/kubernetesconfig', methods=['GET'])
+@cross_origin()
 def template_rules_kubernetesconfig() -> Dict:
     """
     Get a skeleton kubernetesAudit rule.
@@ -193,6 +203,7 @@ def template_rules_kubernetesconfig() -> Dict:
 
 
 @app.route('/templates/rules/threatintel', methods=['GET'])
+@cross_origin()
 def template_rules_threatintel() -> Dict:
     """
     Get a skeleton FIM rule.
@@ -204,6 +215,7 @@ def template_rules_threatintel() -> Dict:
 
 
 @app.route('/templates/rules/winsec', methods=['GET'])
+@cross_origin()
 def template_rules_winsec() -> Dict:
     """
     Get a skeleton Winsec rule.
@@ -215,6 +227,7 @@ def template_rules_winsec() -> Dict:
 
 
 @app.route('/plan', methods=['GET'])
+@cross_origin()
 def plan() -> Dict:
     """
     Get the current state file via tsctl.
@@ -226,6 +239,7 @@ def plan() -> Dict:
 
 
 @app.route('/workspace', methods=['GET', 'POST'])
+@cross_origin()
 def workspace() -> Dict:
     """
     Set the workspace and return a list of rulesets as they appear on-disk. Expects a request payload that looks like
@@ -257,6 +271,7 @@ def workspace() -> Dict:
 
 
 @app.route('/refresh', methods=['POST'])
+@cross_origin()
 def refresh() -> Dict:
     """
     Refresh an organization's local state. Expects a similar payload as 'push':
@@ -301,6 +316,7 @@ def refresh() -> Dict:
 
 
 @app.route('/push', methods=['POST'])
+@cross_origin()
 def push() -> Dict:
     """
     Push organizations' local state changes onto the (remote) Threat Stack platform. Expects a similar payload as
@@ -349,6 +365,7 @@ def push() -> Dict:
 
 
 @app.route('/git/clone', methods=['POST'])
+@cross_origin()
 def clone_git() -> Dict:
     """
     Clone out a Git repo. Expects an object like
@@ -372,7 +389,8 @@ def clone_git() -> Dict:
         abort(HTTPStatus.BAD_REQUEST)
 
 
-@app.route('/git/refresh', methods=[''])
+@app.route('/git/refresh', methods=['POST'])
+@cross_origin()
 def refresh_git() -> Dict:
     """
     Essentially the same as `git push -u origin master`, followed by
@@ -383,6 +401,7 @@ def refresh_git() -> Dict:
 
 
 @app.route('/git/push', methods=['POST'])
+@cross_origin()
 def push_git() -> Dict:
     """
 
@@ -396,6 +415,7 @@ def push_git() -> Dict:
 
 
 @app.route('/copy', methods=['POST'])
+@cross_origin()
 def copy() -> Dict:
     """
     Copy either a rule or ruleset intra- or extra-organization.
@@ -516,6 +536,7 @@ def copy() -> Dict:
 
 
 @app.route('/rule', methods=['GET', 'PUT', 'POST', 'DELETE'])
+@cross_origin()
 def rule() -> Dict:
     """
     Depending on the method of request, either
@@ -696,6 +717,7 @@ def rule() -> Dict:
 
 
 @app.route('/rule/tags', methods=['PUT'])
+@cross_origin()
 def update_tags() -> Dict:
     """
     Update the tags on a rule in this workspace. Expects a data object similar to the endpoint above.
@@ -726,6 +748,7 @@ def update_tags() -> Dict:
 
 
 @app.route('/ruleset', methods=['GET', 'PUT', 'POST', 'DELETE'])
+@cross_origin()
 def ruleset() -> Dict:
     """
     Depending on the method of request, either
