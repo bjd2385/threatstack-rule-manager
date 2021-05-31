@@ -284,10 +284,10 @@ class API:
                     response.pop(field)
 
             # Remove non-POSTable aggregate fields that TS has apparently deprecated.
-            if 'aggregateFields' in rule:
+            if 'aggregateFields' in response:
                 for field in ('rule_id',):
-                    if field in rule['aggregateFields']:
-                        rule['aggregateFields'].remove(field)
+                    if field in response['aggregateFields']:
+                        response['aggregateFields'].remove(field)
 
         return response
 

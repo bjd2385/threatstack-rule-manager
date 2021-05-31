@@ -26,7 +26,7 @@ Severity = Literal[1, 2, 3]
 RuleType = Literal['File', 'CloudTrail', 'Host', 'ThreatIntel', 'Winsec', 'kubernetesAudit', 'kubernetesConfig']
 
 
-def lazy(f: Callable[..., Optional['State']]) -> Callable[..., Optional['State']]:
+def lazy(f: Callable[..., Optional[Union['State', str]]]) -> Callable[..., Optional[Union['State', str]]]:
     """
     Apply a `push` from local state onto the remote state if the `LAZY_EVAL` environment variable was set to `true`.
 
@@ -1243,9 +1243,11 @@ class State:
     def copy_ruleset_out(self, ruleset_id: str, org_id: str, postfix: Optional[str] =None) -> Optional['State']:
         """
         Copy an entire ruleset to a new organization. Process looks like,
+
         1) create a new State instance around this destination organization,
         2) read off this organization, and
         3) make high-level calls to create rules and rulesets in this destination State instance.
+
         This way, the state changes to the destination org. are managed by that instance.
 
         Args:
