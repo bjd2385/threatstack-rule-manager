@@ -4,7 +4,7 @@ tsctl
 `tsctl` is a Terraform-inspired CLI that allows you to perform most common tasks related to organization-level rule management in [Threat Stack's platform](https://www.threatstack.com/), such as
 
 * creating, copying, and deleting rules and rulesets, and
-* applying version control to local state (by default, tracked in `~/.threatstack`), to track rule development and change history on the platform as organizations develop rules to reflect security practices and standards.
+* applying version control to local state (by default, tracked in `~/.threatstack`), to track rule development and change history on the platform as organizations develop new security practices and standards.
 
 ```text
 $ tsctl -h
@@ -114,7 +114,7 @@ In other words, it is a hierarchy of organizations, rulesets, and rules. Require
 * unique ruleset names and IDs, organization-wide, and
 * unique rule names and IDs, organization-wide.
 
-## Development Notes
+## Development
 
 * Be sure to increment [`src/tsctl/__init__.__version__`](src/tsctl/__init__.py) when producing new releases. This is referenced while calling `--version`, as well as during the build process with `setuptools`.
 
