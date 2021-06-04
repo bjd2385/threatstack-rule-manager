@@ -13,14 +13,18 @@ from http import HTTPStatus
 from flask import Flask, redirect, url_for, request, abort
 from flask_cors import cross_origin, CORS
 from functools import lru_cache
-from repo.actions import initialize_repo
+from repo import actions
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 here = os.path.dirname(os.path.realpath(__file__)) + '/'
 app = Flask(__name__)
 cors = CORS(app)
+
+# Note that this is only called again for reconfiguration if an upstream Git repo is set (cf. clone_git), to ensure that
+# tsctl State instances reference the correct path (inside the cloned repo).
 state_directory_path, state_file_path, credentials = tsctl.tsctl.config_parse()
+
 cached_read_json = lru_cache(maxsize=32)(tsctl.tsctl.read_json)
 
 
@@ -368,23 +372,32 @@ def push() -> Dict:
 @cross_origin()
 def clone_git() -> Dict:
     """
-    Clone out a Git repo. Expects an object like
+    Clone out a Git repo. Expects an object payload like
 
     {
-        "directory": "",
-        "gitURL": ""
+        "gitURL": "<repo URL>"
     }
 
     Returns:
         The contents of the directory once it has been cloned.
     """
     request_data = request.get_json()
-    if request_data and _ensure_args(request_data, 'directory', 'gitURL'):
-        directory = request_data['directory']
+    if request_data and _ensure_args(request_data, 'gitURL'):
+        # Update the global state directory/file vars, if the repo subdirectory can be extracted from the Git URL.
+        global state_directory_path, state_file_path
         git_repo = request_data['gitURL']
-        return {
-            "organizations": initialize_repo(directory, git_repo)
-        }
+
+        if _repo_state_subdir := actions.initialize_repo(state_directory_path, git_repo):
+            # Re-read config file and add the repo's directory to the state file/directory path.
+            state_directory_path, state_file_path, _ = tsctl.tsctl.config_parse(_repo_state_subdir)
+            return {
+                "organizations": os.listdir(state_directory_path)
+            }
+        else:
+            return {
+                "error": f"please provide a valid git URL that matches the regular expression '{actions.GIT_REPO_RE.pattern}',"
+                         f" or see the API documentation."
+            }
     else:
         abort(HTTPStatus.BAD_REQUEST)
 
@@ -393,7 +406,7 @@ def clone_git() -> Dict:
 @cross_origin()
 def refresh_git() -> Dict:
     """
-    Essentially the same as `git push -u origin master`, followed by
+    Essentially the same as `git pull
 
     Returns:
 
@@ -404,10 +417,10 @@ def refresh_git() -> Dict:
 @cross_origin()
 def push_git() -> Dict:
     """
-
+    Push changes on the master branch to the upstream URL.
 
     Returns:
-
+        The epoch of the latest push.
     """
 
 
@@ -415,9 +428,26 @@ def push_git() -> Dict:
 @cross_origin()
 def epochs_git() -> Dict:
     """
+    Get a list of epochs on an organization that a user can checkout and load/query on, such as rules. Expects a
+    required search parameter
 
+        ?organization=<org_id1>&organization=<org_id2>...
 
-    
+    Returns:
+        A payload that looks like
+
+        {
+            <org_id>: [
+                <epoch1>
+                ...
+            ]
+            ...
+        }
+
+        Since JSON arrays maintain their order, per RFC 7159, we can rely on this to return the epoch list (commits)
+        in the desired order for listing in the UI.
+
+        https://datatracker.ietf.org/doc/html/rfc7159#section-1
     """
 
 

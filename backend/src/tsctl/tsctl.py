@@ -16,9 +16,13 @@ from .utils import read_json, write_json
 from . import __version__
 
 
-def config_parse() -> Tuple[str, str, Dict[str, str]]:
+def config_parse(repository: Optional[str] =None) -> Tuple[str, str, Dict[str, str]]:
     """
     Initialize the state directory in the user's home directory and parse config options.
+
+    Args:
+        repository: should only be used to reconfigure configuration with an additional repository layer, if a repo is
+            being cloned down. See api.app.clone_git for further details.
 
     Returns:
         A tuple of the base state directory path (within which all organization changes will be made) and the state
@@ -67,6 +71,9 @@ def config_parse() -> Tuple[str, str, Dict[str, str]]:
     else:
         state_directory = '.threatstack'
         state_file = '.threatstack.state.json'
+
+    if repository:
+        state_directory += ('/' if not (state_directory.endswith('/') or repository.startswith('/')) else '') + repository
 
     state_directory_path = home \
         + ('/' if not (home.endswith('/') or state_directory.startswith('/')) else '') \

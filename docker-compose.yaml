@@ -17,8 +17,8 @@ services:
     container_name: rule-manager-backend
     # Comment out the following if you're running this on prod. For testing purposes, however, it saves you the time
     # it would take to perform a refresh to pull down remote state (to run your tests).
-    volumes:
-      - ~/.threatstack/:/root/.threatstack/
+    #volumes:
+    #  - ~/.threatstack/:/root/.threatstack/
     environment:
       # Since rate limiting is enforced to 300 requests/minute at the organization-level, refresh and push actions can be threaded.
       - REMOTE_THREAD_CT=4

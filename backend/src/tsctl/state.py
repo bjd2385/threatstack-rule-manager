@@ -335,9 +335,14 @@ class State:
         # Collect rulesets under this organization and create corresponding directories.
         try:
             rulesets = api.get_rulesets()
-            if 'errors' in rulesets:
+
+            if not rulesets:
+                logging.error(f'Could not retrieve rulesets from the organization with the provided credentials.')
+                return None
+            elif 'errors' in rulesets:
                 logging.error(f'Could not retrieve organization with the provided credentials: {rulesets["errors"]}.')
                 return None
+
             for ruleset in rulesets['rulesets']:
                 ruleset_id = ruleset['id']
 
@@ -702,7 +707,7 @@ class State:
         else:
             return False
 
-    def _create_organization(self, org_id: str) -> Optional['State']:
+    def _create_organization(self, org_id: str) -> None:
         """
         Create a local organization directory if it doesn't already exist, in addition to calling a refresh on that
         directory if that's the case.
@@ -715,9 +720,7 @@ class State:
         """
         if not os.path.isdir(self.state_dir + org_id):
             os.mkdir(self.state_dir + org_id)
-            return State(self.state_dir, self.state_file, self.user_id, self.api_key, org_id=org_id).refresh()
-        else:
-            return None
+            State(self.state_dir, self.state_file, self.user_id, self.api_key, org_id=org_id).refresh()
 
     def _delete_organization(self, org_id: str) -> None:
         """

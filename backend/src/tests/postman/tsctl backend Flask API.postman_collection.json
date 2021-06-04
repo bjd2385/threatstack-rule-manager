@@ -18,12 +18,10 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "http://localhost:8000/templates/rules/audit",
-									"protocol": "http",
+									"raw": "{{url}}/templates/rules/audit",
 									"host": [
-										"localhost"
+										"{{url}}"
 									],
-									"port": "8000",
 									"path": [
 										"templates",
 										"rules",
@@ -39,12 +37,10 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "http://localhost:8000/templates/rules/cloudtrail",
-									"protocol": "http",
+									"raw": "{{url}}/templates/rules/cloudtrail",
 									"host": [
-										"localhost"
+										"{{url}}"
 									],
-									"port": "8000",
 									"path": [
 										"templates",
 										"rules",
@@ -60,12 +56,10 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "http://localhost:8000/templates/rules/threatintel",
-									"protocol": "http",
+									"raw": "{{url}}/templates/rules/threatintel",
 									"host": [
-										"localhost"
+										"{{url}}"
 									],
-									"port": "8000",
 									"path": [
 										"templates",
 										"rules",
@@ -81,12 +75,10 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "http://localhost:8000/templates/rules/file",
-									"protocol": "http",
+									"raw": "{{url}}/templates/rules/file",
 									"host": [
-										"localhost"
+										"{{url}}"
 									],
-									"port": "8000",
 									"path": [
 										"templates",
 										"rules",
@@ -102,12 +94,10 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "http://localhost:8000/templates/rules/winsec",
-									"protocol": "http",
+									"raw": "{{url}}/templates/rules/winsec",
 									"host": [
-										"localhost"
+										"{{url}}"
 									],
-									"port": "8000",
 									"path": [
 										"templates",
 										"rules",
@@ -123,12 +113,10 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "http://localhost:8000/templates/rules/kubernetesaudit",
-									"protocol": "http",
+									"raw": "{{url}}/templates/rules/kubernetesaudit",
 									"host": [
-										"localhost"
+										"{{url}}"
 									],
-									"port": "8000",
 									"path": [
 										"templates",
 										"rules",
@@ -144,12 +132,10 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "http://localhost:8000/templates/rules/kubernetesconfig",
-									"protocol": "http",
+									"raw": "{{url}}/templates/rules/kubernetesconfig",
 									"host": [
-										"localhost"
+										"{{url}}"
 									],
-									"port": "8000",
 									"path": [
 										"templates",
 										"rules",
@@ -170,12 +156,10 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "http://localhost:8000/templates/ruleset",
-									"protocol": "http",
+									"raw": "{{url}}/templates/ruleset",
 									"host": [
-										"localhost"
+										"{{url}}"
 									],
-									"port": "8000",
 									"path": [
 										"templates",
 										"ruleset"
@@ -195,12 +179,10 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "http://localhost:8000/templates/tags",
-									"protocol": "http",
+									"raw": "{{url}}/templates/tags",
 									"host": [
-										"localhost"
+										"{{url}}"
 									],
-									"port": "8000",
 									"path": [
 										"templates",
 										"tags"
@@ -223,8 +205,8 @@
 						"header": [
 							{
 								"key": "Content-Type",
-								"value": "application/json",
-								"type": "text"
+								"type": "text",
+								"value": "application/json"
 							}
 						],
 						"body": {
@@ -232,12 +214,10 @@
 							"raw": "{\n    \"directory\": \"~/.threatstack/\",\n    \"gitURL\": \"{{git_url}}\"\n}"
 						},
 						"url": {
-							"raw": "http://localhost:8000/git/clone",
-							"protocol": "http",
+							"raw": "{{url}}/git/clone",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"git",
 								"clone"
@@ -252,12 +232,10 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/git/push",
-							"protocol": "http",
+							"raw": "{{url}}/git/push",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"git",
 								"push"
@@ -272,15 +250,36 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/git/refresh",
-							"protocol": "http",
+							"raw": "{{url}}/git/refresh",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"git",
 								"refresh"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Organization Epochs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/epochs?organization={{org_id}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"epochs"
+							],
+							"query": [
+								{
+									"key": "organization",
+									"value": "{{org_id}}"
+								}
 							]
 						}
 					},
@@ -297,12 +296,10 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/rule?tags=true&enabled=false&type=file",
-							"protocol": "http",
+							"raw": "{{url}}/rule?tags=true&enabled=false&type=file",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"rule"
 							],
@@ -341,12 +338,10 @@
 							"raw": "{\n    \"ruleset_id\": \"{{ruleset_id}}\",\n    \"data\": [\n        {\n            \"tags\": {},\n            \"rule\": {\n                \"name\": \"Threat Intelligence: Outbound Connection (Connects) to WAN\",\n                \"type\": \"ThreatIntel\",\n                \"title\": \"Threat Intelligence: Outbound Connection (Connects) to WAN: {{threatintel_reason}} to {{ip}}\",\n                \"severityOfAlerts\": 1,\n                \"alertDescription\": \"This alerts when an outbound connection is seen connecting to an IP flagged by our threat intelligence.  Outbound connections could indicate malware callback or a compromised host.  IP and domain reputations change over time, but this should investigated.\",\n                \"aggregateFields\": [\n                    \"threatintel_reason\",\n                    \"ip\"\n                ],\n                \"filter\": \"type =\\\"connect\\\" and event_type=\\\"threatintel\\\"\",\n                \"window\": 3600,\n                \"threshold\": 1,\n                \"suppressions\": [\n                    \"(ip starts_with \\\"10.\\\" OR ip starts_with \\\"192.168.\\\" or ip starts_with \\\"172.16.\\\" or ip starts_with \\\"172.17.\\\" or ip starts_with \\\"172.18.\\\" or ip starts_with \\\"172.19.\\\" or ip starts_with \\\"172.20.\\\" or ip starts_with \\\"172.21.\\\" or ip starts_with \\\"172.22.\\\" or ip starts_with \\\"172.23.\\\" or ip starts_with \\\"172.24.\\\" or ip starts_with \\\"172.25.\\\" or ip starts_with \\\"172.26.\\\" or ip starts_with \\\"172.27.\\\" or ip starts_with \\\"172.28.\\\" or ip starts_with \\\"172.29.\\\" or ip starts_with \\\"172.30.\\\" or ip starts_with \\\"172.31.\\\" or ip starts_with \\\"fd\\\" or ip starts_with \\\"::ffff:10.\\\" OR ip starts_with \\\"::ffff:192.168.\\\" or ip starts_with \\\"::ffff:172.16.\\\" or ip starts_with \\\"::ffff:172.17.\\\" or ip starts_with \\\"::ffff:172.18.\\\" or ip starts_with \\\"::ffff:172.19.\\\" or ip starts_with \\\"::ffff:172.20.\\\" or ip starts_with \\\"::ffff:172.21.\\\" or ip starts_with \\\"::ffff:172.22.\\\" or ip starts_with \\\"::ffff:172.23.\\\" or ip starts_with \\\"::ffff:172.24.\\\" or ip starts_with \\\"::ffff:172.25.\\\" or ip starts_with \\\"::ffff:172.26.\\\" or ip starts_with \\\"::ffff:172.27.\\\" or ip starts_with \\\"::ffff:172.28.\\\" or ip starts_with \\\"::ffff:172.29.\\\" or ip starts_with \\\"::ffff:172.30.\\\" or ip starts_with \\\"::ffff:172.31.\\\" or ip starts_with \\\"fd\\\")\",\n                    \"port = 0\"\n                ],\n                \"enabled\": true\n            }\n        }\n    ]\n}"
 						},
 						"url": {
-							"raw": "http://localhost:8000/rule",
-							"protocol": "http",
+							"raw": "{{url}}/rule",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"rule"
 							]
@@ -360,12 +355,10 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/rule?rule_id=4c1892a8-320f-46e7-8709-472cf6740788-localonly",
-							"protocol": "http",
+							"raw": "{{url}}/rule?rule_id=4c1892a8-320f-46e7-8709-472cf6740788-localonly",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"rule"
 							],
@@ -386,12 +379,10 @@
 						"method": "PUT",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/rule",
-							"protocol": "http",
+							"raw": "{{url}}/rule",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"rule"
 							]
@@ -419,12 +410,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:8000/ruleset",
-							"protocol": "http",
+							"raw": "{{url}}/ruleset",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"ruleset"
 							]
@@ -438,12 +427,10 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/ruleset?ruleset_id={{ruleset_id}}",
-							"protocol": "http",
+							"raw": "{{url}}/ruleset?ruleset_id={{ruleset_id}}",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"ruleset"
 							],
@@ -463,12 +450,10 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/ruleset",
-							"protocol": "http",
+							"raw": "{{url}}/ruleset",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"ruleset"
 							]
@@ -482,12 +467,10 @@
 						"method": "PUT",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/ruleset",
-							"protocol": "http",
+							"raw": "{{url}}/ruleset",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"ruleset"
 							]
@@ -506,12 +489,10 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/workspace",
-							"protocol": "http",
+							"raw": "{{url}}/workspace",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"workspace"
 							]
@@ -525,12 +506,10 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/plan",
-							"protocol": "http",
+							"raw": "{{url}}/plan",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"plan"
 							]
@@ -554,12 +533,10 @@
 							"raw": "{\n    \"workspace\": \"{{org_id}}\"\n}"
 						},
 						"url": {
-							"raw": "http://localhost:8000/workspace",
-							"protocol": "http",
+							"raw": "{{url}}/workspace",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"workspace"
 							]
@@ -583,12 +560,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:8000/refresh",
-							"protocol": "http",
+							"raw": "{{url}}/refresh",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"refresh"
 							]
@@ -612,12 +587,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:8000/push",
-							"protocol": "http",
+							"raw": "{{url}}/push",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"push"
 							]
@@ -645,12 +618,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:8000/copy",
-							"protocol": "http",
+							"raw": "{{url}}/copy",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"copy"
 							]
@@ -673,12 +644,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:8000/copy",
-							"protocol": "http",
+							"raw": "{{url}}/copy",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"copy"
 							]
@@ -701,12 +670,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:8000/copy",
-							"protocol": "http",
+							"raw": "{{url}}/copy",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"copy"
 							]
@@ -729,12 +696,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:8000/copy",
-							"protocol": "http",
+							"raw": "{{url}}/copy",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"copy"
 							]
@@ -754,33 +719,12 @@
 						"method": "PUT",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8000/rule/tags",
-							"protocol": "http",
+							"raw": "{{url}}/rule/tags",
 							"host": [
-								"localhost"
+								"{{url}}"
 							],
-							"port": "8000",
 							"path": [
 								"rule",
-								"tags"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get tags on a rule",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:8000/tags",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "8000",
-							"path": [
 								"tags"
 							]
 						}
@@ -795,12 +739,10 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:8000/version",
-					"protocol": "http",
+					"raw": "{{url}}/version",
 					"host": [
-						"localhost"
+						"{{url}}"
 					],
-					"port": "8000",
 					"path": [
 						"version"
 					]

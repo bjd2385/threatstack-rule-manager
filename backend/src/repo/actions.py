@@ -5,25 +5,43 @@ Manage a timeline of commits and branches that SEs will be working in and on rel
 from typing import List, Optional
 
 import git
+import regex as re
 
 
-def initialize_repo(directory: str, git_url: str) -> Optional[List]:
+# Regexes to pull info out of upstream Git URLs. This should work with both public and private repos, the latter of
+# which requires an access key.
+GIT_REPO_RE = re.compile(r'^(https://github.com/|git@github.com:|https://[a-z0-9]+:[a-z0-9A-Z_]+@github.com/)[a-z0-9]+/[a-z0-9]+(.git)$')
+GIT_REPO_DIR = re.compile(r'^(https://github.com/|git@github.com:|https://[a-z0-9]+:[a-z0-9A-Z_]+@github.com/)[a-z0-9]+/\K[a-z0-9]+(?=(.git))')
+
+
+def initialize_repo(state_dir: str, git_url: str) -> Optional[str]:
     """
     Initialize a directory, or set the upstream directory.
 
     Args:
-        directory: location to clone the repo into.
+        state_dir: current state directory in use. If the user changes the Git repo, update the corresponding state
+            directory within which we are working.
         git_url: Upstream Git repo to pull down and commit changes on.
 
     Returns:
-        A list of the files and directories, once it's been completed. Or None.
+        The new state directory path.
     """
-    repo = git.Git(directory)
+
+    if not re.match(GIT_REPO_RE, git_url):
+        return None
+    else:
+        directory = re.match(GIT_REPO_DIR, git_url).group(0)
+
+    repo_state_subdir = directory + '/'
+    repo = git.Git(state_dir)
+
     try:
         repo.clone(git_url)
     except git.exc.GitCommandError as msg:
         # The repo already exists locally.
         pass
+
+    return repo_state_subdir
 
 
 def checkout_branch(branch_name: str) -> Optional[str]:
@@ -51,12 +69,12 @@ def push_branch(branch_name: str) -> Optional[List]:
     """
 
 
-def workspace(name: str) -> Optional[str]:
+def workspace(org_id: str) -> Optional[str]:
     """
     Checkout a new workspace to query on, checking out another branch.
 
     Args:
-        name: name of the new workspace to create and switch to.
+        org_id:
 
     Returns:
         Optionally,
