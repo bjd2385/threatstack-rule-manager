@@ -129,3 +129,4 @@ In other words, it is a hierarchy of organizations, rulesets, and rules. Require
 6. Ensure logging includes source and destination rule/ruleset IDs, so we know where `*-localonly` copies came from for reproducibility. Probably `DEBUG` loglevel.
 7. Add a db for faster/better lookups than just plain directory traversal.
 8. Might need to look into `refresh` locks, so multiple refresh requests aren't made at the same time. This could be enforced in front end React state, but..
+9. Remove the base URL from TS API calls, so updating this in the future is easier. Would also help with code readability, so the user just sees the endpoint the method focuses on.

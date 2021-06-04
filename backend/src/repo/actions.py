@@ -49,3 +49,15 @@ def push_branch(branch_name: str) -> Optional[List]:
     Returns:
 
     """
+
+
+def workspace(name: str) -> Optional[str]:
+    """
+    Checkout a new workspace to query on, checking out another branch.
+
+    Args:
+        name: name of the new workspace to create and switch to.
+
+    Returns:
+        Optionally,
+    """

@@ -411,6 +411,16 @@ def push_git() -> Dict:
     """
 
 
+@app.route('/git/epochs', methods=['GET'])
+@cross_origin()
+def epochs_git() -> Dict:
+    """
+
+
+    
+    """
+
+
 # Copy
 
 
