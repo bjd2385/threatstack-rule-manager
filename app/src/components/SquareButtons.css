@@ -1,0 +1,14 @@
+.square-button {
+  font: inherit;
+  cursor: pointer;
+  padding: 1rem 2rem;
+  border: 1px solid #40005d;
+  background-color: #40005d;
+  color: white;
+  border-radius: 12px;
+  margin-right: 1rem;
+}
+
+.square-button__github {
+  background-image: url("../images/github_push.png");
+}
